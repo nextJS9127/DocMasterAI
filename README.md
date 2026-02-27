@@ -4,6 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+**Live demo:** [https://doc-master-ai.vercel.app/](https://doc-master-ai.vercel.app/) *(Frontend only; parsing backend must run locally or be deployed separately.)*
+
 ---
 
 ## Features
@@ -37,6 +39,16 @@ npm run dev
 ```
 
 Open **http://localhost:5173**. In **Settings**, add your LLM API key and choose a model, then upload a PDF or PPTX to extract and generate reports.
+
+---
+
+## Deploy on Vercel (Frontend)
+
+The frontend is connected to Vercel for deployment from this repo.
+
+- **Vercel project ID**: `prj_pZefxlz7A8lYCHbv6xq9FOCZtZ9j`
+- **Root Directory**: Set to `docmaster-web` in the Vercel project settings (if the repo root is used, set **Root Directory** to `docmaster-web` so the app builds correctly).
+- **Backend**: The Python parsing backend (`docmaster-backend`) does not run on Vercel. Deploy it separately (e.g. Railway, Render, or run locally) and set the frontend’s API base URL to that backend (currently the app calls `http://localhost:8001`; for production you’d point to your deployed backend URL).
 
 ---
 
