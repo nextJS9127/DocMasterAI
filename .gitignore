@@ -3,6 +3,7 @@ node_modules/
 docmaster-backend/venv/
 docmaster-backend/__pycache__/
 docmaster-backend/**/__pycache__/
+.cursor/
 .pnp
 .pnp.js
 
