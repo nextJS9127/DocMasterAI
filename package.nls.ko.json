@@ -1,0 +1,7 @@
+{
+    "config.llamaParseApiKey.desc": "문서 파싱을 위한 LlamaCloud API 키입니다 (필수). [API 키 발급받기](https://cloud.llamaindex.ai/api-key)",
+    "config.llmProvider.desc": "리포트 생성을 담당할 LLM 제공자(OpenAI, Claude, Gemini)를 선택하세요.",
+    "config.llmApiKey.desc": "위에서 선택한 LLM 제공자의 API 키를 입력하세요.",
+    "config.customFormatFilePath.desc": "선택사항: 리포트 생성에 사용할 사용자 지정 포맷(프롬프트) 파일의 경로를 설정합니다.",
+    "config.outputFormat.desc": "생성될 리포트의 출력 포맷을 선택하세요 (HTML, Markdown)."
+}

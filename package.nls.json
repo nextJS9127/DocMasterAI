@@ -1,0 +1,7 @@
+{
+    "config.llamaParseApiKey.desc": "Your LlamaCloud API Key for document parsing (required). [Get API Key](https://cloud.llamaindex.ai/api-key)",
+    "config.llmProvider.desc": "Select the LLM provider for report generation (OpenAI, Claude, Gemini).",
+    "config.llmApiKey.desc": "API Key for your selected LLM Provider.",
+    "config.customFormatFilePath.desc": "Optional: Path to a custom format or prompt file to use during report generation.",
+    "config.outputFormat.desc": "Select the output format (html, md) for the generated report."
+}

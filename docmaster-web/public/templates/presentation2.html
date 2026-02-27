@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3기 COP 업무 자동화 핵심 기획안</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* 1. SETUP */
+        * { box-sizing: border-box; }
+        body { background-color: #e2e8f0; display: grid; gap: 20px; grid-template-columns: 1fr; margin: 0; min-height: 100vh; padding: 20px 0; place-items: center; }
+        p { margin: 0; margin-bottom: 15px; }
+
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Noto Sans KR', sans-serif;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Decoration: Flowing Lines */
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 100% 0%, rgba(0, 169, 224, 0.05) 0%, transparent 40%);
+            z-index: 0;
+        }
+
+        /* 2. TYPOGRAPHY */
+        h1, h2, h3 { color: #003366; font-family: 'Montserrat', 'Noto Sans KR', sans-serif; margin: 0; }
+        .slide-title { font-size: 40px; font-weight: 800; margin-bottom: 40px; border-left: 10px solid #00A9E0; padding-left: 20px; text-align: left; width: 100%; position: relative; z-index: 1; }
+        p, li, td, th { font-size: 18px; line-height: 1.5; color: #475569; }
+
+        /* 3. LAYOUTS */
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; position: relative; z-index: 1; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; width: 100%; align-items: center; }
+
+        /* Doughnut Chart Styling */
+        .doughnut-chart-container { display: flex; align-items: center; gap: 60px; justify-content: center; width: 100%; }
+        .doughnut-chart {
+            width: 320px; height: 320px;
+            border-radius: 50%;
+            background: conic-gradient(#00A9E0 0% 40.4%, #e2e8f0 40.4% 100%);
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .doughnut-chart::after {
+            content: "40.4%";
+            position: absolute;
+            width: 220px; height: 220px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Montserrat'; font-size: 48px; font-weight: 800; color: #003366;
+        }
+
+        /* Stats Tile */
+        .stat-card { background: #f8fafc; border-radius: 16px; padding: 25px; border: 1px solid #e2e8f0; text-align: center; }
+        .stat-card h4 { font-size: 20px; color: #64748b; margin-bottom: 10px; }
+        .stat-card .value { font-size: 44px; font-weight: 800; color: #00A9E0; font-family: 'Montserrat'; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; border-radius: 12px; overflow: hidden; }
+        th { background: #003366; color: #fff; padding: 18px; text-align: left; }
+        td { padding: 15px 18px; border-bottom: 1px solid #e2e8f0; }
+        tr:last-child td { border-bottom: none; }
+
+        /* Themes Grid */
+        .theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .theme-card { background: #003366; color: #ffffff; padding: 35px; border-radius: 20px; min-height: 300px; display: flex; flex-direction: column; }
+        .theme-card h3 { color: #00A9E0; font-size: 22px; margin-bottom: 20px; }
+        .theme-card ul { padding-left: 20px; margin: 0; font-size: 16px; color: #ffffff; flex-grow: 1; list-style-type: disc; }
+        .theme-card li { color: #ffffff; margin-bottom: 8px; }
+        .theme-card .goal { margin-top: 20px; font-weight: 700; color: #ffffff; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px; }
+
+        /* Footer Speaker Notes */
+        .speaker-notes { position: absolute; bottom: 0; left: 0; width: 100%; background: #1e293b; color: #cbd5e1; padding: 12px 60px; font-size: 16px; font-style: italic; }
+
+        .call-to-action { background: linear-gradient(90deg, #003366, #00A9E0); color: #fff; padding: 25px; border-radius: 12px; text-align: center; font-size: 22px; font-weight: 700; margin-top: 30px; }
+    </style>
+</head>
+<body>
+
+<!-- Slide 1: 프로젝트 비전 및 개요 -->
+<div class="slide-container" id="slide1">
+    <h2 class="slide-title">데이터 기반 자동화로 실무 임계점 돌파</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div>
+                <h3 style="font-size: 28px; margin-bottom: 25px;">3기 COP 프로젝트 개요</h3>
+                <p>본 프로젝트는 실무 프로세스의 근본적인 효율화와 AI 기술의 현업 내재화를 목표로 합니다. 34명의 정예 인원이 참여하여 총 94개의 실무 과제를 심층 분석하였습니다.</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 30px;">
+                    <div class="stat-card"><h4>전체 인원</h4><div class="value">34명</div></div>
+                    <div class="stat-card"><h4>분석 과제</h4><div class="value">94개</div></div>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr><th>조</th><th>담당 직무</th><th>인원</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1조</td><td>호텔 / 항공</td><td>6명</td></tr>
+                        <tr><td>2조</td><td>상품 1</td><td>5명</td></tr>
+                        <tr><td>3조</td><td>상품 2</td><td>6명</td></tr>
+                        <tr><td>4조</td><td>영업</td><td>6명</td></tr>
+                        <tr><td>5조</td><td>마케팅 / 관리</td><td>6명</td></tr>
+                        <tr><td>6조</td><td>재무 / 관리</td><td>5명</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="speaker-notes">이번 3기 COP는 34명의 정예 인원이 94개의 과제를 발굴했으며, 실무 효율과 직결된 고효율 과제를 선별하여 해결해 나갈 예정입니다.</div>
+</div>
+
+<!-- Slide 2: 선택 과제 분석 및 페인 포인트 -->
+<div class="slide-container" id="slide2">
+    <h2 class="slide-title">현장 분석 및 선택 과제 현황</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div class="doughnut-chart-container">
+                <div class="doughnut-chart"></div>
+                <div class="legend">
+                    <div style="margin-bottom: 10px;"><span style="color:#00A9E0; font-weight:800;">●</span> 선택 과제: 38개</div>
+                    <div><span style="color:#e2e8f0; font-weight:800;">●</span> 구조 제약: 56개</div>
+                </div>
+            </div>
+            <div>
+                <h3 style="font-size: 24px; margin-bottom: 20px; color: #FF3B3F;"><i class="fa-solid fa-triangle-exclamation"></i> 실무 현장 Pain Points TOP 5</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 15px; background: #fff5f5; padding: 12px; border-radius: 8px;"><strong>1. 엑셀 수작업:</strong> 대량 데이터 핸들링 시 시간 소모 및 휴먼 에러</li>
+                    <li style="margin-bottom: 15px; background: #fff5f5; padding: 12px; border-radius: 8px;"><strong>2. 반복 문의 응대:</strong> 고객/사내 질의에 대한 소모적 텍스트 작업</li>
+                    <li style="margin-bottom: 15px; background: #fff5f5; padding: 12px; border-radius: 8px;"><strong>3. 수기 데이터 대조:</strong> 시스템 간 불일치를 직접 눈으로 확인</li>
+                    <li style="margin-bottom: 15px; background: #fff5f5; padding: 12px; border-radius: 8px;"><strong>4. 중복 콘텐츠 생성:</strong> 채널별 문구 수동 변형 반복</li>
+                    <li style="margin-bottom: 15px; background: #fff5f5; padding: 12px; border-radius: 8px;"><strong>5. 증빙 확인 지연:</strong> 서류의 데이터화 및 검토 리드타임 발생</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="speaker-notes">현장의 고충은 단순 반복과 데이터 대조에 집중되어 있습니다. 선택된 38개 과제는 이러한 고충을 해결할 즉각적인 타겟입니다.</div>
+</div>
+
+<!-- Slide 3: 3대 자동화 테마 그룹화 -->
+<div class="slide-container" id="slide3">
+    <h2 class="slide-title">핵심 과제 38개: 3대 자동화 테마</h2>
+    <div class="content-area">
+        <div class="theme-grid">
+            <div class="theme-card">
+                <h3>Theme 1. 응대/콘텐츠</h3>
+                <ul>
+                    <li>고객 리뷰 요약 및 감성 분석</li>
+                    <li>CS 답변 초안 자동 생성</li>
+                    <li>상품 홍보 문구 멀티채널 최적화</li>
+                </ul>
+                <div class="goal">제작 시간 50% 단축 및 품질 표준화</div>
+            </div>
+            <div class="theme-card" style="background: #004080;">
+                <h3>Theme 2. 정산/수집</h3>
+                <ul>
+                    <li>거래처 정산 데이터 자동 대조</li>
+                    <li>예약 데이터 실시간 추출 및 전기</li>
+                    <li>시장 가격 자동 모니터링</li>
+                </ul>
+                <div class="goal">정확도 100% 확보 및 수기 Zero</div>
+            </div>
+            <div class="theme-card">
+                <h3>Theme 3. 프로세스 분석</h3>
+                <ul>
+                    <li>수요 예측 기반 재고 관리</li>
+                    <li>영업 실적 대시보드 자동화</li>
+                    <li>데이터 기반 의사결정 체계 구축</li>
+                </ul>
+                <div class="goal">데이터 기반 신속한 의사결정 지원</div>
+            </div>
+        </div>
+    </div>
+    <div class="speaker-notes">38개의 선택 과제는 응대, 정산, 분석이라는 3가지 테마로 묶어 전사적 표준 프로세스를 정립해 나갈 예정입니다.</div>
+</div>
+
+<!-- Slide 4: AI 협업 로드맵 및 가이드 -->
+<div class="slide-container" id="slide4">
+    <h2 class="slide-title">기술 전략: AI 협업 로드맵 및 가이드</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="stat-card" style="text-align: left; padding: 20px; border-left: 5px solid #00A9E0;">
+                    <strong>창의성 (Creativity)</strong><br><span style="font-size: 14px;">LLM 기반 문구 작성 최소화</span>
+                </div>
+                <div class="stat-card" style="text-align: left; padding: 20px; border-left: 5px solid #00A9E0;">
+                    <strong>정확성 (Accuracy)</strong><br><span style="font-size: 14px;">OCR 기반 데이터 정합성 100%</span>
+                </div>
+                <div class="stat-card" style="text-align: left; padding: 20px; border-left: 5px solid #00A9E0;">
+                    <strong>신속성 (Speed)</strong><br><span style="font-size: 14px;">수요 예측 모델 실시간 판단</span>
+                </div>
+                <div class="stat-card" style="text-align: left; padding: 20px; border-left: 5px solid #00A9E0;">
+                    <strong>연속성 (Continuity)</strong><br><span style="font-size: 14px;">RPA 기반 24/7 데이터 처리</span>
+                </div>
+            </div>
+            <div style="background: #f1f5f9; padding: 30px; border-radius: 20px;">
+                <h4 style="margin-top:0; color:#003366;">[실전! AI 협업 3단계]</h4>
+                <p style="font-size: 16px;"><strong>1단계 (Context):</strong> "나는 [OO직무]에서 [OO업무]를 담당해."</p>
+                <p style="font-size: 16px;"><strong>2단계 (Goal):</strong> "이 업무 중 [반복 과정]을 자동화하고 싶어."</p>
+                <p style="font-size: 16px;"><strong>3단계 (Action):</strong> "프롬프트나 파이썬 코드를 제안해줘."</p>
+            </div>
+        </div>
+        <div class="call-to-action">
+            <i class="fa-solid fa-paper-plane"></i> "지금 바로 LLM에 본인의 업무와 자동화 단계를 설명해보세요!"
+        </div>
+    </div>
+    <div class="speaker-notes">기술은 도구일 뿐입니다. 여러분의 질문(Prompt)이 업무의 질을 바꾸는 열쇠입니다. 지금 바로 시작해 보십시오.</div>
+</div>
+
+</body>
+</html>

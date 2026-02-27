@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>패키지 기획전 쿠폰 개선 Phase1 (v0.1)</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #2d3748;
+      line-height: 1.6;
+    }
+
+    .container {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 40px 20px;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 60px;
+      padding: 60px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      font-size: 3.2em;
+      font-weight: 800;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .header .subtitle {
+      font-size: 1.2em;
+      opacity: 0.95;
+      font-weight: 300;
+    }
+
+    .header .meta-info {
+      margin-top: 20px;
+      font-size: 0.9em;
+      opacity: 0.85;
+    }
+
+    .section {
+      background: white;
+      border-radius: 20px;
+      padding: 50px;
+      margin-bottom: 40px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .section:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+    }
+
+    .section-title {
+      font-size: 2.1em;
+      font-weight: 700;
+      margin-bottom: 30px;
+       color: #2d3748;
+      border-left: 6px solid #2d3748;
+      padding-left: 20px;
+    }
+
+    .problem-solution-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+      margin: 30px 0;
+    }
+
+    .problem-solution-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .problem-solution-card:hover {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+      border-color: #667eea;
+    }
+
+    .card-header {
+      font-size: 1.3em;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #2d3748;
+      border-bottom: 2px solid #edf2f7;
+      padding-bottom: 10px;
+    }
+
+    .highlight-box {
+      background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+      border-left: 5px solid #f39c12;
+      padding: 25px;
+      margin: 20px 0 0;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(243, 156, 18, 0.2);
+    }
+
+    .highlight-box strong {
+      color: #d35400;
+      font-size: 1.1em;
+    }
+
+    .process-flow {
+      position: relative;
+      padding: 10px 0;
+    }
+
+    .process-step {
+      display: flex;
+      margin-bottom: 24px;
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 12px;
+      border-left: 5px solid #667eea;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      background: #667eea;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      flex-shrink: 0;
+      margin-right: 20px;
+      margin-top: 3px;
+    }
+
+    .step-content h3 {
+      margin-bottom: 10px;
+      color: #4a5568;
+    }
+
+    ul.check-list {
+      list-style: none;
+    }
+
+    ul.check-list li {
+      padding-left: 25px;
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    ul.check-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #667eea;
+      font-weight: bold;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95em;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 2.4em;
+      }
+
+      .section {
+        padding: 30px 20px;
+      }
+
+      .problem-solution-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>패키지 기획전 쿠폰 개선 Phase1 (v0.1)</h1>
+      <p class="subtitle">기획전 쿠폰 정책 및 노출/적용 기준 정리</p>
+      <div class="meta-info">HTML 생성일: 2026.01.19</div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">1. 추진 목적 (Why)</h2>
+      <ul class="check-list">
+        <li>기획전 쿠폰 운영 편의성 개선</li>
+        <li>3월 목표로 카카오뱅크 제휴용 대응 스펙으로 우선 진행</li>
+        <li>닷컴/코브랜드/플랫폼(허브·파트너) 간 관리 기준 통합</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">2. 주요 개선 사항 (What)</h2>
+      <div class="problem-solution-grid">
+        <div class="problem-solution-card">
+          <div class="card-header">노출 제어</div>
+          <ul class="check-list">
+            <li>지정된 기획전 안에서 노출 및 다운로드 가능</li>
+            <li>검색 결과, 상품 상세 화면에서는 비노출</li> 
+          </ul>
+        </div>
+        <div class="problem-solution-card">
+          <div class="card-header">적용 대상 확대</div>
+          <ul class="check-list">
+            <li>성인 및 아동으로 확대(유아 제외)</li>
+            <li>최대 적용 인원 20명</li>
+          </ul>
+        </div>
+        <div class="problem-solution-card">
+          <div class="card-header">기획전 쿠폰 타입 정의</div>
+          <ul class="check-list">
+            <li>기획전 쿠폰 타입 신규 생성</li>
+            <li>예약관리 화면 컬럼에 타입 노출</li>
+          </ul>
+        </div>
+        <div class="problem-solution-card">
+          <div class="card-header">허브/파트너포털</div>
+          <ul class="check-list">
+            <li>허브/파트너 포탈 상품조회에서 기획전 쿠폰 매핑 정보 노출</li>
+            <li>할인쿠폰 조회에 기획전 쿠폰 정보 추가</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">3. 주요 프로세스</h2>
+      <div class="process-flow">
+        <div class="process-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>기획전 쿠폰 정의</h3>
+            <ul class="check-list">
+              <li>기획전 쿠폰 타입 신규 생성</li>
+              <li>예약관리 화면에 타입 노출</li>
+            </ul>
+          </div>
+        </div>
+        <div class="process-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>노출/다운로드 정책</h3>
+            <ul class="check-list">
+              <li>기획전 내에서만 다운로드 가능</li>
+              <li>검색/상품상세에는 미노출</li>
+            </ul>
+          </div>
+        </div>
+        <div class="process-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>적용 대상 검증</h3>
+            <ul class="check-list">
+              <li>성인+아동 적용, 유아 제외</li>
+              <li>최대 적용 인원 20명 제한</li>
+            </ul>
+          </div>
+        </div>
+        <div class="process-step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h3>관리/조회 반영</h3>
+            <ul class="check-list">
+              <li>예약관리/상품조회/할인쿠폰 조회에 정보 노출</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">4. 정책 요약</h2>
+      <div class="problem-solution-card">
+        <div class="card-header">쿠폰 사용 범위 (채널 기준)</div>
+        <table>
+          <thead>
+            <tr>
+              <th>채널</th>
+              <th>즉시할인</th>
+              <th>다운로드</th>
+              <th>기획전</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>닷컴</td>
+              <td>사용가능</td>
+              <td>사용가능</td>
+              <td>사용가능</td>
+            </tr>
+            <tr>
+              <td>코브랜드(공식인증/브랜드몰/닷컴대리점)</td>
+              <td>사용가능</td>
+              <td>사용가능</td>
+              <td>사용가능</td>
+            </tr>
+            <tr>
+              <td>제휴사</td>
+              <td>사용불가</td>
+              <td>사용불가</td>
+              <td>사용불가</td>
+            </tr>
+            <tr>
+              <td>자회사(투어리스트/하나비즈/웹투어)</td>
+              <td>사용가능</td>
+              <td>사용불가(변경전)</td>
+              <td>사용가능(phase2 변경 예정)</td>
+            </tr>
+            <tr>
+              <td>화이트라벨 제휴사</td>
+              <td>사용불가</td>
+              <td>사용불가</td>
+              <td>사용불가</td>
+            </tr>
+            <tr>
+              <td>API 연동 제휴</td>
+              <td>사용불가</td>
+              <td>사용불가</td>
+              <td>사용불가</td>
+            </tr>
+            <tr>
+              <td>일반대리점/제휴여행사</td>
+              <td>사용불가</td>
+              <td>사용불가</td>
+              <td>사용불가</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">5. 정책 상세</h2>
+      <div class="problem-solution-grid">
+        <div class="problem-solution-card">
+          <div class="card-header">마스터 정보 입력</div>
+          <ul class="check-list">
+            <li>쿠폰명 최대 25자, 쿠폰유형 자체/교차, 쿠폰종류 4종 중 1개</li>
+            <li>쿠폰공개채널: 닷컴 PC/MO/APP, 코브랜드 PC/MO</li>
+            <li>혜택유형 정액/정률(최대 20%, 최대할인 50만원)</li>
+            <li>발급한도수량 및 발급가능기간/요일 설정</li>
+          </ul>
+        </div>
+        <div class="problem-solution-card">
+          <div class="card-header">쿠폰 사용 조건</div>
+          <ul class="check-list">
+            <li>유효기간: 시작/종료 10분 단위 또는 다운로드 후 기간</li>
+            <li>쿠폰사용채널: 다운로드/기획전 가능</li>
+            <li>대리점분담율 최대 50%</li>
+            <li>최소결제금액/최소상품가격 1원 단위</li>
+          </ul>
+        </div>
+      </div>
+      <div class="highlight-box">
+        <strong>공통 상세정책:</strong> 중복 적용 불가, 결제 시 사용, 기획전 내 다운로드만 가능, 성인+아동 적용
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">6. 리스크</h2>
+      <ul class="check-list">
+        <li>미노출 정책으로 인한 외부 유입 감소 가능성</li>
+        <li>채널별 사용가능/불가 분기 복잡도 증가</li>
+        <li>아동 적용 확대에 따른 비용 증가</li>
+        <li>허브/파트너/닷컴 간 데이터 정합성 리스크</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">7. 화면/시스템 수정 범위</h2>
+      <div class="problem-solution-grid">
+        <div class="problem-solution-card">
+          <div class="card-header">닷컴 및 코브랜드</div>
+          <ul class="check-list">
+            <li>검색결과/상품상세에서 기획전 쿠폰 미노출</li>
+            <li>기획전 내 다운로드만 가능</li>
+          </ul>
+        </div>
+        <div class="problem-solution-card">
+          <div class="card-header">하나허브/파트너 포탈</div>
+          <ul class="check-list">
+            <li>예약관리 화면: 쿠폰 타입 PLEX 노출</li>
+            <li>상품조회/할인쿠폰 조회: 매핑 정보 노출</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">8. 추가 설명</h2>
+      <ul class="check-list">
+        <li>카카오뱅크 제휴용 최소 대응 스펙 기준 문서</li>
+        <li>Phase2에서 자회사 코브랜드 쿠폰 정책 변경 예정</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
