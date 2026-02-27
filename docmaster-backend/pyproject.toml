@@ -13,8 +13,8 @@ dependencies = [
 ]
 
 [project.scripts]
-# Vercel FastAPI 진입점: main:app
-app = "main:app"
+# Vercel FastAPI 진입점 (index.py가 공식 지원 목록에 있음)
+app = "index:app"
 
 [tool.vercel]
 excludeFiles = ["venv/**", "outputs/**", "**/__pycache__/**", "**/*.pyc"]
