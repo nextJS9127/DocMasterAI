@@ -9,11 +9,16 @@ import { generateReportClient, type ReportUsage, type HtmlTemplateId } from './l
 import { translations } from './lib/translations';
 import type { Language } from './lib/translations';
 
-/** 파싱 백엔드 URL. Vercel 등에서는 VITE_API_BASE_URL 로 배포된 백엔드 지정 (끝의 / 제거) */
+/** 파싱 백엔드 URL. 빌드 시 VITE_API_BASE_URL 있으면 사용, 없으면 Vercel 도메인일 때 배포 백엔드 사용 */
 const API_BASE_URL = (() => {
   const raw = import.meta.env.VITE_API_BASE_URL;
-  if (typeof raw !== 'string' || raw.trim() === '') return 'http://localhost:8001';
-  return raw.trim().replace(/\/+$/, '');
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    return raw.trim().replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined' && /\.vercel\.app$/i.test(window.location?.hostname || '')) {
+    return 'https://doc-master-ai-wsjo.vercel.app';
+  }
+  return 'http://localhost:8001';
 })();
 
 // [UPDATED] 2단계 파이프라인 상태 타입
