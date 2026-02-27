@@ -7,6 +7,18 @@
 **Live demo:** [https://doc-master-ai.vercel.app/](https://doc-master-ai.vercel.app/)  
 *(프론트·백엔드 모두 Vercel에 배포하면, 사용자는 Git/로컬 실행 없이 데모만으로 사용 가능.)*
 
+> 💡 **Useful?** Consider giving the repo a **star** so others can find it.
+
+---
+
+## Screenshots
+
+| Upload & Extract | Report (Executive / Team) |
+|------------------|---------------------------|
+| *Add a screenshot of the upload/settings screen* | *Add a screenshot of the generated report* |
+
+*(스크린샷이나 GIF를 추가하면 검색·첫인상에 도움이 됩니다. `docs/` 또는 README에 이미지 링크 추가.)*
+
 ---
 
 ## Features
@@ -98,6 +110,27 @@ Open **http://localhost:5173**. In **Settings**, add your LLM API key and choose
 
 ---
 
+## Repository setup (GitHub에서 한 번만 설정)
+
+스타·검색 노출을 위해 GitHub 저장소 **About**에서 다음을 설정하는 것을 권장합니다.
+
+| 항목 | 권장 값 |
+|------|--------|
+| **Description** | `DocMaster AI – PDF/PPTX를 실행 요약·팀 문서로. 로컬 파싱, 자체 LLM 연동` |
+| **Topics** | `document-ai`, `pdf`, `pptx`, `llm`, `openai`, `claude`, `gemini`, `react`, `vite`, `fastapi`, `executive-summary` |
+
+저장소 페이지 오른쪽 **About** → 연필 아이콘에서 편집하면 됩니다.  
+체크리스트는 [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md)를 참고하세요.
+
+---
+
+## Releases
+
+- **첫 릴리스**: GitHub에서 **Releases** → **Create a new release** → Tag `v0.1.0` (또는 `v1.0.0`) 생성 후 릴리스 노트 작성.
+- 로컬에서 태그만 만들려면: `git tag v0.1.0 && git push origin v0.1.0`
+
+---
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
@@ -106,4 +139,4 @@ MIT. See [LICENSE](LICENSE).
 
 ## Contributing
 
-Issues and pull requests are welcome. If you find this useful, consider giving the repo a star.
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. If you find this useful, consider giving the repo a **star**.

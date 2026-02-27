@@ -17,6 +17,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi import APIRouter
 
 from app.pdf_utils import pdf_to_markdown
 from app.pptx_utils import pptx_to_markdown
@@ -46,6 +47,10 @@ app.add_middleware(
 
 SUPPORTED_EXTENSIONS = {".pdf", ".pptx"}
 
+# Vercel 배포 시 공식 예제처럼 /api prefix 사용 (로컬도 동일하게 /api/parse, /api/health)
+router = APIRouter(prefix="/api", tags=["api"])
+
+
 # 추출 MD 1차 정제 사용 여부 (기본: True). False면 원문 그대로 반환·저장.
 REFINE_MD = os.environ.get("REFINE_MD", "true").lower() in ("1", "true", "yes")
 
@@ -57,7 +62,7 @@ OUTPUTS_DIR = Path("/tmp/docmaster_outputs") if os.environ.get("VERCEL") else Pa
 OUTPUTS_DIR.mkdir(exist_ok=True)
 
 
-@app.get("/health")
+@router.get("/health")
 async def health_check():
     """서버 상태 확인 엔드포인트."""
     return {
@@ -67,7 +72,7 @@ async def health_check():
     }
 
 
-@app.post("/parse")
+@router.post("/parse")
 async def parse_document(file: UploadFile = File(...)):
     """
     업로드된 PDF 또는 PPTX 파일을 마크다운으로 변환합니다.
@@ -134,7 +139,7 @@ async def parse_document(file: UploadFile = File(...)):
         os.unlink(tmp_path)
 
 
-@app.get("/result/{file_id}")
+@router.get("/result/{file_id}")
 async def get_result_markdown(file_id: str):
     """
     저장된 마크다운 파일을 텍스트로 반환합니다.
@@ -146,7 +151,7 @@ async def get_result_markdown(file_id: str):
     return PlainTextResponse(content=output_path.read_text(encoding="utf-8"))
 
 
-@app.get("/result/{file_id}/download")
+@router.get("/result/{file_id}/download")
 async def download_result_markdown(file_id: str):
     """
     저장된 마크다운 파일을 .md 파일로 다운로드합니다.
@@ -161,7 +166,7 @@ async def download_result_markdown(file_id: str):
     )
 
 
-@app.get("/results")
+@router.get("/results")
 async def list_results():
     """
     저장된 추출 결과 파일 목록을 반환합니다.
@@ -177,3 +182,6 @@ async def list_results():
             for f in files
         ]
     }
+
+
+app.include_router(router)
