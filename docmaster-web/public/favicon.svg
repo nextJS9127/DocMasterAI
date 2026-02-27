@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="6" fill="url(#docmaster-grad)"/>
+  <path d="M8 10h16v2H8V10zm0 4h12v1.5H8V14zm0 3.5h10v1.5H8v-1.5z" fill="white" opacity=".95"/>
+  <path d="M20 22l3-3 1.5 1.5L21 24l-1-2z" fill="white"/>
+  <circle cx="24" cy="10" r="3" fill="white" opacity=".9"/>
+  <defs>
+    <linearGradient id="docmaster-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+</svg>
