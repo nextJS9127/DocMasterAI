@@ -29,7 +29,7 @@ app = FastAPI(
     version="1.1.0",
 )
 
-# [CORS] Vite 개발 서버에서 오는 요청 허용 (포트 범위 대응)
+# [CORS] Vite 개발 서버 + Vercel 배포 도메인에서 오는 요청 허용
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -37,6 +37,7 @@ app.add_middleware(
         "http://localhost:5174",
         "http://localhost:5175",
         "http://localhost:5176",
+        "https://doc-master-ai.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -51,8 +52,8 @@ REFINE_MD = os.environ.get("REFINE_MD", "true").lower() in ("1", "true", "yes")
 # 금액/날짜 정규화 적용 여부 (기본: True).
 NORMALIZE_MD = os.environ.get("NORMALIZE_MD", "true").lower() in ("1", "true", "yes")
 
-# [NEW] 추출 결과 저장 디렉토리 (서버 실행 위치 기준)
-OUTPUTS_DIR = Path(__file__).parent / "outputs"
+# 추출 결과 저장 디렉토리. Vercel 서버리스에서는 /tmp 사용 (쓰기 가능)
+OUTPUTS_DIR = Path("/tmp/docmaster_outputs") if os.environ.get("VERCEL") else Path(__file__).parent / "outputs"
 OUTPUTS_DIR.mkdir(exist_ok=True)
 
 

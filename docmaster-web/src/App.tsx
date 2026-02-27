@@ -9,6 +9,13 @@ import { generateReportClient, type ReportUsage, type HtmlTemplateId } from './l
 import { translations } from './lib/translations';
 import type { Language } from './lib/translations';
 
+/** 파싱 백엔드 URL. Vercel 등에서는 VITE_API_BASE_URL 로 배포된 백엔드 지정 (끝의 / 제거) */
+const API_BASE_URL = (() => {
+  const raw = import.meta.env.VITE_API_BASE_URL;
+  if (typeof raw !== 'string' || raw.trim() === '') return 'http://localhost:8001';
+  return raw.trim().replace(/\/+$/, '');
+})();
+
 // [UPDATED] 2단계 파이프라인 상태 타입
 type AppStep = 'idle' | 'parsing' | 'parsed' | 'generating';
 
@@ -51,7 +58,7 @@ function App() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:8001/parse', {
+      const response = await fetch(`${API_BASE_URL}/parse`, {
         method: 'POST',
         body: formData,
       });
@@ -59,7 +66,7 @@ function App() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.detail || `Python 서버 오류 (localhost:8001). 서버가 실행 중인지 확인하세요.`
+          errorData.detail || `파싱 서버 오류. 백엔드(${API_BASE_URL})가 실행 중인지 확인하세요.`
         );
       }
 

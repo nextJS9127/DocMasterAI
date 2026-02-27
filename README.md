@@ -4,7 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Live demo:** [https://doc-master-ai.vercel.app/](https://doc-master-ai.vercel.app/) *(Frontend only; parsing backend must run locally or be deployed separately.)*
+**Live demo:** [https://doc-master-ai.vercel.app/](https://doc-master-ai.vercel.app/)  
+*(프론트·백엔드 모두 Vercel에 배포하면, 사용자는 Git/로컬 실행 없이 데모만으로 사용 가능.)*
 
 ---
 
@@ -42,13 +43,33 @@ Open **http://localhost:5173**. In **Settings**, add your LLM API key and choose
 
 ---
 
-## Deploy on Vercel (Frontend)
+## Deploy on Vercel (프론트 + 백엔드 모두 Vercel에서 동작)
 
-The frontend is connected to Vercel for deployment from this repo.
+**같은 저장소로 Vercel 프로젝트를 두 개** 만들어서, 사용자가 Git 클론·로컬 서버 없이 데모 URL만으로 사용할 수 있게 할 수 있습니다.
 
-- **Vercel project ID**: `prj_pZefxlz7A8lYCHbv6xq9FOCZtZ9j`
-- **Root Directory**: Set to `docmaster-web` in the Vercel project settings (if the repo root is used, set **Root Directory** to `docmaster-web` so the app builds correctly).
-- **Backend**: The Python parsing backend (`docmaster-backend`) does not run on Vercel. Deploy it separately (e.g. Railway, Render, or run locally) and set the frontend’s API base URL to that backend (currently the app calls `http://localhost:8001`; for production you’d point to your deployed backend URL).
+### 1) 프론트엔드 (이미 연결된 프로젝트)
+
+- **Root Directory**: `docmaster-web`
+- **URL**: https://doc-master-ai.vercel.app (또는 본인 도메인)
+
+### 2) 백엔드 (새 Vercel 프로젝트 추가)
+
+1. [Vercel Dashboard](https://vercel.com/new)에서 **같은 GitHub 저장소**를 다시 Import.
+2. **Root Directory**를 `docmaster-backend`로 지정.
+3. **Framework Preset**: Other (또는 Python)  
+   - `docmaster-backend`에는 `pyproject.toml`(진입점 `main:app`)과 `vercel.json`이 있어서 FastAPI가 서버리스로 배포됩니다.
+4. Deploy 후 나온 **백엔드 URL**을 복사 (예: `https://docmaster-backend-xxx.vercel.app`).
+
+### 3) 프론트엔드에서 백엔드 URL 연결
+
+1. **프론트엔드** Vercel 프로젝트 → **Settings** → **Environment Variables**
+2. `VITE_API_BASE_URL` = 위에서 복사한 **백엔드 URL** (예: `https://docmaster-backend-xxx.vercel.app`) 추가.  
+   - Production, Preview, Development 모두 같은 값으로 설정해도 됩니다.
+3. **Redeploy** 한 번 실행.
+
+이후에는 https://doc-master-ai.vercel.app 에서 파일 업로드·추출·보고서 생성이 **로컬 실행 없이** 동작합니다.
+
+- **참고**: Vercel 서버리스는 요청당 실행 시간 제한(기본 60초 등)이 있으므로, 매우 큰 PDF/PPTX는 타임아웃될 수 있습니다. 제한은 프로젝트 설정 또는 `docmaster-backend/vercel.json`의 `maxDuration`으로 조정 가능합니다.
 
 ---
 
