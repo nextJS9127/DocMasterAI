@@ -204,6 +204,225 @@ export function getDefaultTeamEditable(lang: PromptLang): string {
   return lang === 'en' ? DEFAULT_PROMPT_TEAM_EDITABLE_EN : DEFAULT_PROMPT_TEAM_EDITABLE;
 }
 
+/** 개발 피쳐(카테고리별) — 편집 가능 블록 (한글) */
+export const DEFAULT_PROMPT_FEATURES_EDITABLE = `# Role & Objective
+당신은 15년 차 테크 리드이자 제품 기획자입니다.
+[원천 데이터]를 분석하여, 개발팀이 바로 작업 목록으로 쓸 수 있는 **카테고리별 개발 피쳐(기능·요건) 문서**를 작성합니다.
+
+# Input Data 규칙
+- [원천 데이터]: PDF/PPTX에서 추출·정제된 마크다운입니다. [[TABLE]]/[[DIAGRAM]] 블록이 있으면 표·다이어그램 설명으로 반영하세요.
+
+# Core Rules
+1. 원천 데이터에 없는 기능·요건을 창작하지 마세요. 확인이 필요한 부분은 [확인 필요]로 표시하세요.
+2. 카테고리는 원천 데이터의 구조(챕터·섹션·도메인)를 반영하거나, 논리적으로 묶을 수 있는 단위(예: 회원·주문·결제·관리자)로 나누세요.
+3. 각 피쳐는 한 문장 이상의 설명, 우선순위(필수/권장/선택), 필요 시 수용 기준(Acceptance Criteria) 1~3줄을 포함하세요.
+
+# 필수 출력 구조 (아래 순서와 헤딩을 준수)
+1. **문서 개요**: 문서 목적, 원천 문서 성격, 대상 독자(개발·기획·QA 등).
+2. **카테고리 목록**: 카테고리 ID·이름·한 줄 설명.
+3. **카테고리별 개발 피쳐**: 각 카테고리마다 카테고리명(ID), 피쳐 목록(테이블 또는 리스트: 피쳐 ID, 제목, 설명, 우선순위, 수용 기준).
+4. **의존성·참고**: 카테고리/피쳐 간 선행 조건·참고 문서가 있으면 간단히 명시.
+
+# 출력 형식
+1) 정리된 내용(마크다운): \`\`\`markdown ... \`\`\` 블록에 위 구조대로 작성.
+2) 완성 HTML: \`\`\`html ... \`\`\` 블록에, 아래 "개발 피처 문서 템플릿" 구조와 \`<style>\` 블록을 반드시 사용하라. \`<main class="fe-body">\` 와 \`</main>\` 사이에만 본문을 채운다. (1) \`<div class="fe-overview">\` 문서 개요, (2) \`<div class="fe-category-list-wrap">\` 카테고리 목록 표, (3) 카테고리별 \`<section class="fe-category">\` — \`<h2 class="fe-category-title">\` + \`<div class="fe-table-wrap"><table class="fe-table">\` 피쳐 표. 표 헤더: 피쳐 ID, 제목, 설명, 우선순위, 수용 기준. 수용 기준이 여러 항목이면 \`<ul class="fe-bullets">\` 와 \`<li>\` 를 사용하라.`;
+
+/** 개발 피쳐 — 영문 */
+export const DEFAULT_PROMPT_FEATURES_EDITABLE_EN = `# Role & Objective
+You are a senior tech lead and product planner. Analyze [Source Data] and produce a **category-based development features (and requirements) document** that dev teams can use as a task list.
+
+# Input Data Rules
+- [Source Data]: Markdown extracted from PDF/PPTX. Reflect [[TABLE]]/[[DIAGRAM]] blocks as tables or diagram descriptions.
+
+# Core Rules
+1. Do not invent features or requirements not in the source. Mark uncertain items as [Needs confirmation].
+2. Categories should reflect the source structure (chapters, domains) or logical units (e.g. member, order, payment, admin).
+3. Each feature must have a short description, priority (must/high/optional), and optionally 1–3 acceptance criteria.
+
+# Required Output Structure (follow this order and headings)
+1. **Document overview**: Purpose, source document type, target audience.
+2. **Category list**: Category ID, name, one-line description.
+3. **Features per category**: For each category, feature list (table or list: ID, title, description, priority, acceptance criteria).
+4. **Dependencies & references**: Preconditions or references between categories/features if any.
+
+# Output format
+1) Summary (markdown): In a \`\`\`markdown ... \`\`\` block.
+2) Complete HTML: In a \`\`\`html ... \`\`\` block. Use the "Development Features document template" (structure and \`<style>\` block) from the HTML rules. Fill only between \`<main class="fe-body">\` and \`</main>\`: (1) \`<div class="fe-overview">\` for document overview, (2) \`<div class="fe-category-list-wrap">\` for category list table, (3) for each category \`<section class="fe-category">\` with \`<h2 class="fe-category-title">\` and \`<div class="fe-table-wrap"><table class="fe-table">\`. Table headers: Feature ID, Title, Description, Priority, Acceptance criteria. For multiple criteria use \`<ul class="fe-bullets">\` with \`<li>\`.`;
+
+/** 개발 피쳐 — HTML 출력 고정 규칙 */
+const HTML_FIXED_FEATURES = `
+# HTML 출력 규칙 (엄격히 준수)
+- 최종 출력은 반드시 1) \`\`\`markdown ... \`\`\` 블록, 2) \`\`\`html ... \`\`\` 블록 순서로만 출력하라.
+- HTML은 아래 "개발 피처 문서 템플릿" 구조와 \`<style>\` 블록을 반드시 사용하라. \`<main class="fe-body">\` 와 \`</main>\` 사이에만 본문을 채워 넣는다.
+- 본문 구성: (1) \`<div class="fe-overview">\` 문서 개요·목적·대상 독자, (2) \`<div class="fe-category-list-wrap">\` 카테고리 목록 표, (3) 카테고리별 \`<section class="fe-category">\` — 각 섹션에 \`<h2 class="fe-category-title">\` + \`<div class="fe-table-wrap"><table class="fe-table">\` 로 피쳐 표. 표 헤더: 피쳐 ID, 제목, 설명, 우선순위, 수용 기준. 수용 기준이 여러 항목이면 \`<ul class="fe-bullets">\` 와 \`<li>\` 를 사용하라.
+- \`<style>\` 블록은 수정하지 말고 그대로 유지하라. 마크다운 코드블록 없이 순수 HTML만 반환하라.
+
+## 개발 피처 문서 템플릿 (이 구조와 스타일을 반드시 사용)
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Development Features Document</title>
+<style>
+* { box-sizing: border-box; }
+body.fe-document { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: #f1f5f9; color: #1e293b; line-height: 1.6; margin: 0; padding: 24px 16px; }
+.fe-container { max-width: 1100px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); overflow: hidden; }
+.fe-header { background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); color: #fff; padding: 28px 32px; }
+.fe-header h1 { margin: 0; font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+.fe-header p { margin: 8px 0 0; font-size: 0.9rem; opacity: 0.9; }
+main.fe-body { padding: 32px; }
+.fe-overview { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px 24px; margin-bottom: 28px; }
+.fe-overview h2 { margin: 0 0 12px; font-size: 1.1rem; color: #475569; font-weight: 600; }
+.fe-overview p { margin: 0 0 8px; font-size: 0.95rem; color: #334155; }
+.fe-category-list-wrap { margin-bottom: 32px; overflow-x: auto; }
+.fe-category-list-wrap table { width: 100%; min-width: 360px; }
+section.fe-category { margin-bottom: 36px; }
+.fe-category-title { margin: 0 0 16px; font-size: 1.25rem; font-weight: 700; color: #1e293b; padding-bottom: 10px; border-bottom: 3px solid #1e40af; }
+.fe-table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+table.fe-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+table.fe-table th, table.fe-table td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid #e2e8f0; }
+table.fe-table th { background: #0f172a; color: #fff; font-weight: 600; white-space: nowrap; }
+table.fe-table tr:nth-child(even) { background: #f8fafc; }
+table.fe-table tr:hover { background: #f1f5f9; }
+table.fe-table td { color: #334155; }
+ul.fe-bullets { margin: 0; padding-left: 20px; list-style-type: disc; }
+ul.fe-bullets li { margin-bottom: 4px; }
+.fe-priority-must { font-weight: 700; color: #b91c1c; }
+.fe-priority-high { font-weight: 600; color: #b45309; }
+.fe-priority-optional { color: #64748b; }
+.fe-meta { font-size: 0.8rem; color: #64748b; margin-top: 24px; }
+</style>
+</head>
+<body class="fe-document">
+<div class="fe-container">
+<header class="fe-header">
+<h1>Development Features Document</h1>
+<p>카테고리별 개발 피처·요건 — 개발팀 작업 목록용</p>
+</header>
+<main class="fe-body">
+<!-- 여기에 문서 개요(.fe-overview), 카테고리 목록 표(.fe-category-list-wrap), 카테고리별 section.fe-category + table.fe-table 삽입 -->
+</main>
+</div>
+</body>
+</html>
+`;
+
+/** 테스트 케이스 — 편집 가능 블록 (한글) */
+export const DEFAULT_PROMPT_TESTCASES_EDITABLE = `# Role & Objective
+당신은 15년 차 QA 리드입니다.
+[원천 데이터]를 분석하여, 품질관리 인원이 그대로 실행할 수 있는 **테스트 케이스 문서**를 작성합니다.
+각 케이스는 **영역(모듈/기능)** · **단계(스텝)** · **조치(무엇을 하는지)** · **예상 결과**를 포함해야 합니다.
+
+# Input Data 규칙
+- [원천 데이터]: PDF/PPTX에서 추출된 마크다운입니다. [[TABLE]]/[[DIAGRAM]]이 있으면 표·흐름으로 반영하세요.
+
+# Core Rules
+1. 원천 데이터에 없는 동작·결과를 만들지 마세요. 불명확한 부분은 [확인 필요]로 표시하세요.
+2. 영역은 원천 문서의 기능/모듈/화면 단위로 나누세요 (예: 로그인, 회원가입, 주문 생성, 결제).
+3. 각 테스트 케이스는 실행 가능한 단위로 나누고, 단계(Step)는 1, 2, 3…으로 번호를 부여하세요.
+4. 예상 결과는 구체적으로 작성하세요 (예: "URL이 /dashboard로 변경되고 사용자명이 상단에 표시됨").
+
+# 필수 출력 구조 (아래 순서와 헤딩 준수)
+1. **문서 개요**: 테스트 대상 문서 요약, 대상 영역, 작성 기준일.
+2. **테스트 케이스 목록(요약)**: 영역별 케이스 수, 우선순위 등 요약 표.
+3. **영역별 테스트 케이스**: 각 영역마다 ## [영역명], 테이블: 케이스 ID, 케이스명, 전제조건, 단계(Step), 조치(행동), 예상 결과, 비고. 단계는 1, 2, 3…으로 구체적 행동 단위로 나열.
+4. **부록**: 용어 정리, 참고 화면/문서 (선택).
+
+# 출력 형식
+1) 정리된 내용(마크다운): \`\`\`markdown ... \`\`\` 블록에 위 구조대로 작성.
+2) 완성 HTML: \`\`\`html ... \`\`\` 블록에, 표(<table>) 중심의 테스트 케이스 HTML. 영역은 <h2>, 케이스는 표로 표시.`;
+
+/** 테스트 케이스 — 영문 */
+export const DEFAULT_PROMPT_TESTCASES_EDITABLE_EN = `# Role & Objective
+You are a senior QA lead. Analyze [Source Data] and produce **test case documentation** that QA can execute as-is. Each case must include **area (module/feature)**, **step**, **action**, and **expected result**.
+
+# Input Data Rules
+- [Source Data]: Markdown extracted from PDF/PPTX. Use [[TABLE]]/[[DIAGRAM]] for tables and flows.
+
+# Core Rules
+1. Do not invent actions or results not in the source. Mark unclear items as [Needs confirmation].
+2. Areas = functional/module/screen units (e.g. login, signup, order creation, payment).
+3. Each test case is an executable unit; steps numbered 1, 2, 3… with concrete actions.
+4. Expected results must be specific (e.g. "URL changes to /dashboard and username is shown in header").
+
+# Required Output Structure (follow this order and headings)
+1. **Document overview**: Test target summary, scope, date.
+2. **Test case summary**: Count per area, priority table.
+3. **Test cases by area**: For each area, ## [Area name], table: Case ID, Name, Precondition, Step, Action, Expected result, Notes. Steps as 1, 2, 3… concrete actions.
+4. **Appendix**: Glossary, references (optional).
+
+# Output format
+1) Summary (markdown): \`\`\`markdown ... \`\`\` block.
+2) Complete HTML: \`\`\`html ... \`\`\` block. Use the TC document template (structure and \`<style>\` block) provided in the HTML rules. Fill only between \`<main class="tc-body">\` and \`</main>\`: (1) \`.tc-overview\` for document overview, (2) \`.tc-summary-wrap\` for summary table, (3) for each area \`<section class="tc-area">\` with \`<h2 class="tc-area-title">\` and \`<div class="tc-table-wrap"><table class="tc-table">\`. In the Step column use \`<ol class="tc-steps">\` with \`<li>\` per step; for multiple items use \`<ul class="tc-bullets">\` with \`<li>\`.`;
+
+/** 테스트 케이스 — HTML 출력 고정 규칙 */
+const HTML_FIXED_TESTCASES = `
+# HTML 출력 규칙 (엄격히 준수)
+- 최종 출력은 반드시 1) \`\`\`markdown ... \`\`\` 블록, 2) \`\`\`html ... \`\`\` 블록 순서로만 출력하라.
+- HTML은 아래 "TC 문서 템플릿" 구조와 \`<style>\` 블록을 반드시 사용하라. \`<main class="tc-body">\` 와 \`</main>\` 사이에만 본문을 채워 넣는다.
+- 본문 구성: (1) \`<div class="tc-overview">\` 문서 개요·대상·기준일, (2) \`<div class="tc-summary-wrap">\` 요약 표, (3) 영역별 \`<section class="tc-area">\` — 각 섹션에 \`<h2 class="tc-area-title">\` + \`<div class="tc-table-wrap"><table class="tc-table">\` 로 케이스 표. 표 헤더: 케이스 ID, 케이스명, 전제조건, 단계(Step), 조치, 예상 결과, 비고.
+- 단계(Step) 셀에는 반드시 \`<ol class="tc-steps">\` 안에 \`<li>\` 로 1, 2, 3… 구체적 행동을 나열하라. 조치·예상 결과가 여러 항목이면 \`<ul class="tc-bullets">\` 와 \`<li>\` 를 사용하라.
+- \`<style>\` 블록은 수정하지 말고 그대로 유지하라. 마크다운 코드블록 없이 순수 HTML만 반환하라.
+
+## TC 문서 템플릿 (이 구조와 스타일을 반드시 사용)
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Case Document</title>
+<style>
+* { box-sizing: border-box; }
+body.tc-document { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: #f1f5f9; color: #1e293b; line-height: 1.6; margin: 0; padding: 24px 16px; }
+.tc-container { max-width: 1100px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); overflow: hidden; }
+.tc-header { background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #fff; padding: 28px 32px; }
+.tc-header h1 { margin: 0; font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+.tc-header p { margin: 8px 0 0; font-size: 0.9rem; opacity: 0.9; }
+main.tc-body { padding: 32px; }
+.tc-overview { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px 24px; margin-bottom: 28px; }
+.tc-overview h2 { margin: 0 0 12px; font-size: 1.1rem; color: #475569; font-weight: 600; }
+.tc-overview p { margin: 0 0 8px; font-size: 0.95rem; color: #334155; }
+.tc-summary-wrap { margin-bottom: 32px; overflow-x: auto; }
+.tc-summary-wrap table { width: 100%; min-width: 400px; }
+section.tc-area { margin-bottom: 36px; }
+.tc-area-title { margin: 0 0 16px; font-size: 1.25rem; font-weight: 700; color: #1e293b; padding-bottom: 10px; border-bottom: 3px solid #2563eb; }
+.tc-table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+table.tc-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+table.tc-table th, table.tc-table td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid #e2e8f0; }
+table.tc-table th { background: #1e3a5f; color: #fff; font-weight: 600; white-space: nowrap; }
+table.tc-table tr:nth-child(even) { background: #f8fafc; }
+table.tc-table tr:hover { background: #f1f5f9; }
+table.tc-table td { color: #334155; }
+ol.tc-steps, ul.tc-bullets { margin: 0; padding-left: 20px; }
+ol.tc-steps { list-style-type: decimal; }
+ul.tc-bullets { list-style-type: disc; }
+ol.tc-steps li, ul.tc-bullets li { margin-bottom: 4px; }
+.tc-meta { font-size: 0.8rem; color: #64748b; margin-top: 24px; }
+</style>
+</head>
+<body class="tc-document">
+<div class="tc-container">
+<header class="tc-header">
+<h1>Test Case Document</h1>
+<p>QA 실행용 테스트 케이스 — 영역별·단계별 정리</p>
+</header>
+<main class="tc-body">
+<!-- 여기에 문서 개요(.tc-overview), 요약 표(.tc-summary-wrap), 영역별 section.tc-area + table.tc-table 삽입 -->
+</main>
+</div>
+</body>
+</html>
+`;
+
+export function getDefaultFeaturesEditable(lang: PromptLang): string {
+  return lang === 'en' ? DEFAULT_PROMPT_FEATURES_EDITABLE_EN : DEFAULT_PROMPT_FEATURES_EDITABLE;
+}
+
+export function getDefaultTestcasesEditable(lang: PromptLang): string {
+  return lang === 'en' ? DEFAULT_PROMPT_TESTCASES_EDITABLE_EN : DEFAULT_PROMPT_TESTCASES_EDITABLE;
+}
+
 // 경영진 보고서: 카드·오브젝트 중심 + 슬라이드 넘기기 (PPT 스타일)
 const DEFAULT_TEMPLATE = `
 <!DOCTYPE html>
@@ -294,6 +513,9 @@ const DEFAULT_TEMPLATE = `
 
 export type HtmlTemplateId = 'default' | 'phase1' | 'presentation2' | 'wiki' | 'preformat';
 
+/** 보고서 생성 유형: 경영진/실무 보고서 또는 개발 피쳐/테스트 케이스 */
+export type ReportType = 'executive' | 'team' | 'features' | 'testcases';
+
 /** 보고서 생성 시 LLM 사용량 (토큰·비용) */
 export type ReportUsage = {
     inputTokens: number;
@@ -310,7 +532,7 @@ const LLM_SELECTION_MAP: Record<string, { provider: 'openai' | 'claude' | 'gemin
     openai:          { provider: 'openai', modelId: 'gpt-4o' },
     claude:          { provider: 'claude', modelId: 'claude-sonnet-4-6' },
     'claude-opus':   { provider: 'claude', modelId: 'claude-opus-4-5-20251101' },
-    'gemini3':       { provider: 'gemini', modelId: 'gemini-3-pro-preview' },
+    'gemini3':       { provider: 'gemini', modelId: 'gemini-3.1-pro-preview' },
     'gemini-25-pro': { provider: 'gemini', modelId: 'gemini-2.5-pro' },
 };
 
@@ -318,6 +540,55 @@ const LLM_SELECTION_MAP: Record<string, { provider: 'openai' | 'claude' | 'gemin
 export function getProviderForApiKey(selection: string): 'openai' | 'claude' | 'gemini' {
     const mapped = LLM_SELECTION_MAP[selection];
     return mapped ? mapped.provider : (selection === 'claude' || selection === 'gemini' ? selection : 'openai');
+}
+
+/** 현재 선택한 LLM + API 키로 최소 요청을 보내 연결·모델 정상 여부 확인 */
+export async function verifyLlmConnection(
+    selection: string,
+    apiKey: string
+): Promise<{ success: boolean; message?: string }> {
+    const key = (apiKey || '').trim();
+    if (!key) return { success: false, message: 'API 키를 입력해 주세요.' };
+
+    const mapped = LLM_SELECTION_MAP[selection];
+    const provider = mapped ? mapped.provider : (selection === 'claude' || selection === 'gemini' ? selection : 'openai');
+    const modelId = mapped ? mapped.modelId : (provider === 'openai' ? 'gpt-4o' : provider === 'claude' ? 'claude-sonnet-4-6' : 'gemini-2.5-pro');
+
+    const testPrompt = 'Reply with exactly: OK';
+
+    try {
+        if (provider === 'openai') {
+            const openai = new OpenAI({ apiKey: key, dangerouslyAllowBrowser: true });
+            const isReasoning = modelId.startsWith('gpt-5.1') || modelId.startsWith('gpt-5.2');
+            await openai.chat.completions.create({
+                model: modelId,
+                messages: [{ role: 'user', content: testPrompt }],
+                max_tokens: 20,
+                ...(isReasoning && { reasoning_effort: 'low' as const }),
+            });
+        } else if (provider === 'claude') {
+            const anthropic = new Anthropic({ apiKey: key });
+            await anthropic.messages.create({
+                model: modelId,
+                max_tokens: 20,
+                messages: [{ role: 'user', content: testPrompt }],
+            });
+        } else if (provider === 'gemini') {
+            const genAI = new GoogleGenerativeAI(key);
+            const model = genAI.getGenerativeModel({
+                model: modelId,
+                generationConfig: { maxOutputTokens: 20 },
+            });
+            const result = await model.generateContent(testPrompt);
+            await result.response;
+        } else {
+            return { success: false, message: `지원하지 않는 provider: ${provider}` };
+        }
+        return { success: true };
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { success: false, message: msg };
+    }
 }
 
 /** provider·토큰 수로 약산 비용 계산 (선택값 기준, 참고용) */
@@ -487,29 +758,49 @@ export async function generateReportClient(
     markdownData: string,
     selection: string,
     apiKey: string,
-    reportType: 'executive' | 'team' = 'executive',
+    reportType: ReportType = 'executive',
     templateId: HtmlTemplateId = 'default'
 ): Promise<GenerateReportResult> {
     const mapped = LLM_SELECTION_MAP[selection];
     const provider = mapped ? mapped.provider : (selection === 'claude' || selection === 'gemini' ? selection : 'openai');
     const modelId = mapped ? mapped.modelId : (provider === 'openai' ? 'gpt-4o' : provider === 'claude' ? 'claude-sonnet-4-6' : 'gemini-2.5-pro');
-    // 편집 가능 블록(역할·규칙·Step) + HTML 고정 블록(출력 형식) 조합. 고정 블록은 설정에서 수정 불가.
-    const executiveEditable = localStorage.getItem('docmaster_promptExecutiveEditable') || getDefaultExecutiveEditable((localStorage.getItem('docmaster_lang') === 'en' ? 'en' : 'ko'));
-    const teamEditable = localStorage.getItem('docmaster_promptTeamEditable') || getDefaultTeamEditable((localStorage.getItem('docmaster_lang') === 'en' ? 'en' : 'ko'));
-    const editablePart = reportType === 'team' ? teamEditable : executiveEditable;
-    const SYSTEM_PROMPT = editablePart + (reportType === 'team' ? HTML_FIXED_TEAM : HTML_FIXED_EXECUTIVE);
-    const templateContent = getTemplateForApi(templateId);
-    const isPreformat = templateId === 'preformat';
-    const templateGuidance = templateId === 'default'
-        ? TEMPLATE_INSTRUCTION_DEFAULT
-        : isPreformat
-            ? ''
-            : TEMPLATE_INSTRUCTION_STYLE_GUIDE;
-    const label = templateId === 'default'
-        ? '[Target HTML Template]'
-        : isPreformat
-            ? '[Preformat — 템플릿 자동 설계 지시]'
-            : '[HTML 형식 스타일 가이드]';
+    const promptLang: PromptLang = localStorage.getItem('docmaster_lang') === 'en' ? 'en' : 'ko';
+
+    let SYSTEM_PROMPT: string;
+    let templateContent: string;
+    let templateGuidance: string;
+    let label: string;
+
+    if (reportType === 'features') {
+        const featuresEditable = localStorage.getItem('docmaster_promptFeaturesEditable') || getDefaultFeaturesEditable(promptLang);
+        SYSTEM_PROMPT = featuresEditable + HTML_FIXED_FEATURES;
+        templateContent = WIKI_STYLE_GUIDE;
+        templateGuidance = TEMPLATE_INSTRUCTION_STYLE_GUIDE;
+        label = '[HTML 형식 스타일 가이드]';
+    } else if (reportType === 'testcases') {
+        const testcasesEditable = localStorage.getItem('docmaster_promptTestcasesEditable') || getDefaultTestcasesEditable(promptLang);
+        SYSTEM_PROMPT = testcasesEditable + HTML_FIXED_TESTCASES;
+        templateContent = WIKI_STYLE_GUIDE;
+        templateGuidance = TEMPLATE_INSTRUCTION_STYLE_GUIDE;
+        label = '[HTML 형식 스타일 가이드]';
+    } else {
+        const executiveEditable = localStorage.getItem('docmaster_promptExecutiveEditable') || getDefaultExecutiveEditable(promptLang);
+        const teamEditable = localStorage.getItem('docmaster_promptTeamEditable') || getDefaultTeamEditable(promptLang);
+        const editablePart = reportType === 'team' ? teamEditable : executiveEditable;
+        SYSTEM_PROMPT = editablePart + (reportType === 'team' ? HTML_FIXED_TEAM : HTML_FIXED_EXECUTIVE);
+        templateContent = getTemplateForApi(templateId);
+        const isPreformat = templateId === 'preformat';
+        templateGuidance = templateId === 'default'
+            ? TEMPLATE_INSTRUCTION_DEFAULT
+            : isPreformat
+                ? ''
+                : TEMPLATE_INSTRUCTION_STYLE_GUIDE;
+        label = templateId === 'default'
+            ? '[Target HTML Template]'
+            : isPreformat
+                ? '[Preformat — 템플릿 자동 설계 지시]'
+                : '[HTML 형식 스타일 가이드]';
+    }
     const userPrompt = `
 [Extracted Markdown Data / 원시 데이터]
 ${markdownData}
@@ -580,7 +871,7 @@ ${templateGuidance}
                   contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
                   generationConfig: {
                       temperature: 0.3,
-                      thinkingConfig: modelId.includes('gemini-3')
+                      thinkingConfig: modelId.includes('gemini-3.1') || modelId.includes('gemini-3-pro')
                           ? { thinkingLevel: 'HIGH' }
                           : { thinkingBudget: 8192 },
                   } as Record<string, unknown>,

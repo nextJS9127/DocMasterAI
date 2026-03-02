@@ -30,4 +30,4 @@ Thumbs.db
 npm-debug.log*
 
 # Optional: uncomment if you want to ignore uploaded/output files
-# docmaster-backend/outputs/
+docmaster-backend/outputs/

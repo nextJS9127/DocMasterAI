@@ -57,4 +57,9 @@ export default defineConfig({
     },
     hmr: true,
   },
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    globals: false,
+  },
 });

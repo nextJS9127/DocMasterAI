@@ -75,7 +75,7 @@ export function UploadZone({ onFileSelect, disabled, isProcessing, lang, onNoKey
       )}
 
       <div
-        className={`border-2 border-dashed rounded-xl p-10 transition-all duration-200 
+        className={`border-2 border-dashed rounded-xl p-4 transition-all duration-200 
           ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400'}
           ${(disabled || isProcessing) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
         `}
@@ -99,19 +99,19 @@ export function UploadZone({ onFileSelect, disabled, isProcessing, lang, onNoKey
         <div className="flex flex-col items-center justify-center text-center">
           {isProcessing ? (
             <div className="flex flex-col items-center">
-              <Loader2 size={40} className="text-blue-600 animate-spin mb-4" />
-              <span className="text-blue-800 font-semibold text-lg">{t.processing}</span>
-              <span className="text-slate-500 text-sm mt-2">{t.wait}</span>
+              <Loader2 size={28} className="text-blue-600 animate-spin mb-2" />
+              <span className="text-blue-800 font-semibold text-sm">{t.processing}</span>
+              <span className="text-slate-500 text-xs mt-1">{t.wait}</span>
             </div>
           ) : (
             <>
-              <div className="w-16 h-16 bg-white shadow-sm border border-slate-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                <UploadCloud size={32} className={isDragging ? 'text-blue-600' : 'text-slate-400'} />
+              <div className="w-12 h-12 bg-white shadow-sm border border-slate-100 rounded-full flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                <UploadCloud size={24} className={isDragging ? 'text-blue-600' : 'text-slate-400'} />
               </div>
-              <span className="text-slate-700 font-semibold text-lg mb-1">
+              <span className="text-slate-700 font-semibold text-sm mb-0.5">
                 {t.clickToSelect}
               </span>
-              <span className="text-slate-500 text-sm mb-4">{t.orDrag}</span>
+              <span className="text-slate-500 text-xs mb-2">{t.orDrag}</span>
 
               <div className="flex gap-2">
                 <span className="px-2 py-1 bg-slate-200 text-slate-600 rounded text-xs font-medium">PDF</span>
@@ -119,7 +119,7 @@ export function UploadZone({ onFileSelect, disabled, isProcessing, lang, onNoKey
               </div>
 
               {disabled && (
-                <p className="mt-4 text-xs text-red-500 font-medium bg-red-50 py-1 px-3 rounded-full border border-red-100">
+                <p className="mt-2 text-xs text-red-500 font-medium bg-red-50 py-1 px-3 rounded-full border border-red-100">
                   {t.keyError}
                 </p>
               )}

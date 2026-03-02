@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Brain, Settings, CheckCircle2, ChevronRight, Lock, Upload, User, Mail, BookOpen, HelpCircle, KeyRound, X } from 'lucide-react';
 import { SettingsModal } from './components/SettingsModal';
+import { PromptSetModal } from './components/PromptSetModal';
 import { OnboardingManualModal } from './components/OnboardingManualModal';
 import { UploadZone } from './components/UploadZone';
 import { ReportViewer } from './components/ReportViewer';
 import { ParsedResultPanel } from './components/ParsedResultPanel';
-import { generateReportClient, type ReportUsage, type HtmlTemplateId } from './lib/llmClient';
+import { generateReportClient, type ReportUsage, type HtmlTemplateId, type ReportType } from './lib/llmClient';
 import { translations } from './lib/translations';
 import type { Language } from './lib/translations';
+import { BestPracticeCards, type BestPracticeId } from './components/BestPracticeCards';
 
 /** 파싱 백엔드 URL. 빌드 시 VITE_API_BASE_URL 있으면 사용, 없으면 Vercel 도메인일 때 배포 백엔드 사용 */
 const API_BASE_URL = (() => {
@@ -41,6 +43,17 @@ function App() {
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [showKeyRequiredToast, setShowKeyRequiredToast] = useState(false);
 
+  const [selectedBestPractice, setSelectedBestPractice] = useState<BestPracticeId>(() => {
+    try {
+      const s = localStorage.getItem('docmaster_bestPractice') as BestPracticeId | null;
+      return s === 'features' || s === 'testcases' ? s : 'report';
+    } catch {
+      return 'report';
+    }
+  });
+
+  const [promptSetOutcomeId, setPromptSetOutcomeId] = useState<BestPracticeId | null>(null);
+
   useEffect(() => {
     const llmKey = localStorage.getItem('docmaster_llmKey');
     setHasKeys(!!llmKey);
@@ -53,26 +66,33 @@ function App() {
     localStorage.setItem('docmaster_lang', newLang);
   };
 
+  const handleBestPracticeSelect = (id: BestPracticeId) => {
+    setSelectedBestPractice(id);
+    try {
+      localStorage.setItem('docmaster_bestPractice', id);
+    } catch {}
+  };
+
   const t = translations[lang];
 
   // ─── Step 1: 파일 업로드 → Python 파싱만 수행 ──────────────────────────────
   const handleFileSelect = async (file: File) => {
     setAppStep('parsing');
+    const parseUrl = `${API_BASE_URL}/api/parse`;
     try {
-      console.log('Python 로컬 서버로 파싱 요청 중...');
+      console.log('파싱 요청:', parseUrl);
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${API_BASE_URL}/api/parse`, {
+      const response = await fetch(parseUrl, {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.detail || `파싱 서버 오류. 백엔드(${API_BASE_URL})가 실행 중인지 확인하세요.`
-        );
+        const detail = errorData.detail || `파싱 서버 오류 (${response.status}). 요청 URL: ${parseUrl}`;
+        throw new Error(detail);
       }
 
       const data = await response.json();
@@ -94,7 +114,7 @@ function App() {
 
   // ─── Step 2: parsedMarkdown + reportType + templateId → LLM 보고서 생성 ────────────────
   const handleGenerateReport = async (
-    reportType: 'executive' | 'team',
+    reportType: ReportType,
     templateId: HtmlTemplateId = 'default'
   ) => {
     if (!parsedMarkdown) return;
@@ -156,6 +176,11 @@ function App() {
         msg.includes('quota') ||
         msg.includes('rate limit');
 
+      const is503OrOverload =
+        msg.includes('503') ||
+        msg.includes('high demand') ||
+        msg.includes('try again later');
+
       if (isKeyOrAuthError) {
         alert(
           `${t.reportError.keyMismatchTitle}\n\n${t.reportError.keyMismatchMessage}`
@@ -171,6 +196,12 @@ function App() {
           'API 한도에 도달했습니다 (429).\n\n' +
             '• 요청 빈도/사용량 한도: 잠시 후 다시 시도하거나 다른 LLM을 선택해 보세요.\n' +
             '• 인풋이 너무 길 때도 429가 날 수 있으니, 문서가 매우 길면 짧게 나눠 보세요.'
+        );
+      } else if (is503OrOverload) {
+        alert(
+          '선택한 모델(Google Gemini 등)이 일시적으로 과부하 상태입니다 (503).\n\n' +
+            '• 잠시 후 다시 시도해 보세요.\n' +
+            '• 계속되면 [설정]에서 다른 LLM(예: OpenAI, Claude)으로 바꿔 보세요.'
         );
       } else {
         alert(`보고서 생성 중 오류가 발생했습니다:\n${error instanceof Error ? error.message : String(error)}`);
@@ -394,7 +425,7 @@ function App() {
                 {/* Upload 박스 */}
                 <div className="bg-white p-2 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-100 transform transition-all duration-300 hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)]">
                   <div className="border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-indigo-50/30 hover:border-indigo-300 transition-colors duration-300 group">
-                    <div className="px-6 py-12 md:py-20 text-center flex flex-col items-center">
+                    <div className="px-6 py-4 md:py-6 text-center flex flex-col items-center">
                       <UploadZone
                         onFileSelect={handleFileSelect}
                         disabled={!hasKeys}
@@ -405,6 +436,13 @@ function App() {
                     </div>
                   </div>
                 </div>
+
+                <BestPracticeCards
+                  selectedId={selectedBestPractice}
+                  onSelect={handleBestPracticeSelect}
+                  onOpenPromptEditor={setPromptSetOutcomeId}
+                  lang={lang}
+                />
 
                 {!hasKeys && (
                   <div className="mt-8 text-center animate-fade-in">
@@ -418,18 +456,30 @@ function App() {
 
             {/* ── Step 2: parsed / generating ── */}
             {(appStep === 'parsed' || appStep === 'generating' || reportHtml) && parsedMarkdown && (
-              <ParsedResultPanel
-                parsedMarkdown={parsedMarkdown}
-                parsedFileName={parsedFileName}
-                parsedFileId={parsedFileId}
-                lang={lang}
-                onGenerateReport={handleGenerateReport}
-                onReset={handleReset}
-                reportReady={!!reportHtml}
-                reportMarkdown={reportMarkdown}
-                reportUsage={reportUsage}
-                onViewReport={() => setShowReportPopup(true)}
-              />
+              <>
+                <ParsedResultPanel
+                  parsedMarkdown={parsedMarkdown}
+                  parsedFileName={parsedFileName}
+                  parsedFileId={parsedFileId}
+                  lang={lang}
+                  bestPracticeId={selectedBestPractice}
+                  onGenerateReport={handleGenerateReport}
+                  onReset={handleReset}
+                  reportReady={!!reportHtml}
+                  reportMarkdown={reportMarkdown}
+                  reportUsage={reportUsage}
+                  onViewReport={() => setShowReportPopup(true)}
+                />
+                {/* 1단계 추출 결과를 기준으로 생성할 문서 타입 선택 — Step2 영역 아래 */}
+                <div className="mt-10">
+                  <BestPracticeCards
+                    selectedId={selectedBestPractice}
+                    onSelect={handleBestPracticeSelect}
+                    onOpenPromptEditor={setPromptSetOutcomeId}
+                    lang={lang}
+                  />
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -444,6 +494,15 @@ function App() {
             setIsSettingsOpen(false);
           }}
           lang={lang}
+        />
+      )}
+
+      {/* Prompt Set Modal (산출물별 프롬프트 편집) */}
+      {promptSetOutcomeId !== null && (
+        <PromptSetModal
+          outcomeId={promptSetOutcomeId}
+          lang={lang}
+          onClose={() => setPromptSetOutcomeId(null)}
         />
       )}
 

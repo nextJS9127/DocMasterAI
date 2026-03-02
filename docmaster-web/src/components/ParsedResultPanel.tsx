@@ -12,14 +12,16 @@ import { useState } from 'react';
 import { Download, FileText, RefreshCw, ChevronRight, Loader2, FileOutput, FileDown } from 'lucide-react';
 import { translations } from '../lib/translations';
 import type { Language } from '../lib/translations';
-import type { HtmlTemplateId, ReportUsage } from '../lib/llmClient';
+import type { HtmlTemplateId, ReportUsage, ReportType } from '../lib/llmClient';
+import type { BestPracticeId } from './BestPracticeCards';
 
 interface ParsedResultPanelProps {
     parsedMarkdown: string;
     parsedFileName: string;
     parsedFileId: string | null;
     lang: Language;
-    onGenerateReport: (reportType: 'executive' | 'team', templateId: HtmlTemplateId) => Promise<void>;
+    bestPracticeId: BestPracticeId;
+    onGenerateReport: (reportType: ReportType, templateId: HtmlTemplateId) => Promise<void>;
     onReset: () => void;
     reportReady?: boolean;
     reportMarkdown?: string | null;
@@ -32,6 +34,7 @@ export function ParsedResultPanel({
     parsedFileName,
     parsedFileId: _parsedFileId,
     lang,
+    bestPracticeId,
     onGenerateReport,
     onReset,
     reportReady = false,
@@ -44,6 +47,22 @@ export function ParsedResultPanel({
     const [isGenerating, setIsGenerating] = useState(false);
     const t = translations[lang];
     const tp = t.parsedPanel;
+    const bp = t.bestPractice;
+
+    const handleGenerate = async () => {
+        setIsGenerating(true);
+        try {
+            if (bestPracticeId === 'features') {
+                await onGenerateReport('features', 'wiki');
+            } else if (bestPracticeId === 'testcases') {
+                await onGenerateReport('testcases', 'wiki');
+            } else {
+                await onGenerateReport(reportType, htmlTemplateId);
+            }
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
     // 브라우저 메모리에서 .md 다운로드 (즉시, 서버 불필요)
     const handleDownloadMd = () => {
@@ -57,15 +76,6 @@ export function ParsedResultPanel({
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-    };
-
-    const handleGenerate = async () => {
-        setIsGenerating(true);
-        try {
-            await onGenerateReport(reportType, htmlTemplateId);
-        } finally {
-            setIsGenerating(false);
-        }
     };
 
     const handleDownloadReportMd = () => {
@@ -177,66 +187,76 @@ export function ParsedResultPanel({
                 </div>
             )}
 
-            {/* Step 2: 보고서 형식 선택 + 생성 */}
+            {/* Step 2: 보고서/피쳐/테스트케이스 형식 선택 + 생성 */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
                 <div className="flex items-center gap-2 mb-5">
                     <ChevronRight size={16} className="text-indigo-500" />
                     <span className="text-sm font-bold text-slate-700">{tp.step2Label}</span>
                 </div>
 
-                {/* HTML 형식 선택 */}
-                <div className="mb-4">
-                    <label className="block text-xs font-semibold text-slate-600 mb-2">{tp.htmlFormatLabel}</label>
-                    <select
-                        value={htmlTemplateId}
-                        onChange={(e) => setHtmlTemplateId(e.target.value as HtmlTemplateId)}
-                        disabled={isGenerating}
-                        className="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-60"
-                    >
-                        <option value="default">{tp.htmlFormatDefault}</option>
-                        <option value="phase1">{tp.htmlFormatPhase1}</option>
-                        <option value="presentation2">{tp.htmlFormatPresentation}</option>
-                        <option value="wiki">{tp.htmlFormatWiki}</option>
-                        <option value="preformat">{tp.htmlFormatPreformat}</option>
-                    </select>
-                </div>
-
-                {/* 형식 선택 카드 */}
-                <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                    <button
-                        onClick={() => setReportType('executive')}
-                        disabled={isGenerating}
-                        className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all text-left ${reportType === 'executive'
-                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                            }`}
-                    >
-                        <div className="flex items-center gap-2">
-                            <span className="text-lg">📊</span>
-                            <div>
-                                <div>{t.reportTypeExecutive}</div>
-                                <div className="text-xs font-normal mt-0.5 opacity-70">{tp.reportTypeExecutiveSub}</div>
-                            </div>
+                {bestPracticeId === 'report' && (
+                    <>
+                        {/* HTML 형식 선택 */}
+                        <div className="mb-4">
+                            <label className="block text-xs font-semibold text-slate-600 mb-2">{tp.htmlFormatLabel}</label>
+                            <select
+                                value={htmlTemplateId}
+                                onChange={(e) => setHtmlTemplateId(e.target.value as HtmlTemplateId)}
+                                disabled={isGenerating}
+                                className="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-60"
+                            >
+                                <option value="default">{tp.htmlFormatDefault}</option>
+                                <option value="phase1">{tp.htmlFormatPhase1}</option>
+                                <option value="presentation2">{tp.htmlFormatPresentation}</option>
+                                <option value="wiki">{tp.htmlFormatWiki}</option>
+                                <option value="preformat">{tp.htmlFormatPreformat}</option>
+                            </select>
                         </div>
-                    </button>
 
-                    <button
-                        onClick={() => setReportType('team')}
-                        disabled={isGenerating}
-                        className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all text-left ${reportType === 'team'
-                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                            }`}
-                    >
-                        <div className="flex items-center gap-2">
-                            <span className="text-lg">📋</span>
-                            <div>
-                                <div>{t.reportTypeTeam}</div>
-                                <div className="text-xs font-normal mt-0.5 opacity-70">{tp.reportTypeTeamSub}</div>
-                            </div>
+                        {/* 형식 선택 카드 */}
+                        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                            <button
+                                onClick={() => setReportType('executive')}
+                                disabled={isGenerating}
+                                className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all text-left ${reportType === 'executive'
+                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span className="text-lg">📊</span>
+                                    <div>
+                                        <div>{t.reportTypeExecutive}</div>
+                                        <div className="text-xs font-normal mt-0.5 opacity-70">{tp.reportTypeExecutiveSub}</div>
+                                    </div>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => setReportType('team')}
+                                disabled={isGenerating}
+                                className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all text-left ${reportType === 'team'
+                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span className="text-lg">📋</span>
+                                    <div>
+                                        <div>{t.reportTypeTeam}</div>
+                                        <div className="text-xs font-normal mt-0.5 opacity-70">{tp.reportTypeTeamSub}</div>
+                                    </div>
+                                </div>
+                            </button>
                         </div>
-                    </button>
-                </div>
+                    </>
+                )}
+
+                {(bestPracticeId === 'features' || bestPracticeId === 'testcases') && (
+                    <p className="text-sm text-slate-600 mb-4">
+                        {bestPracticeId === 'features' ? bp.featuresHowTo : bp.testcasesHowTo}
+                    </p>
+                )}
 
                 {/* 생성 버튼 */}
                 <button
@@ -249,6 +269,10 @@ export function ParsedResultPanel({
                             <Loader2 size={17} className="animate-spin" />
                             {tp.generating}
                         </>
+                    ) : bestPracticeId === 'features' ? (
+                        bp.generateFeatures
+                    ) : bestPracticeId === 'testcases' ? (
+                        bp.generateTestcases
                     ) : (
                         tp.generateReport
                     )}
