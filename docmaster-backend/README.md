@@ -38,3 +38,12 @@ uvicorn main:app --reload --port 8001
 |--------|------|------|
 | GET | /api/health | 서버 상태 확인 |
 | POST | /api/parse | PDF/PPTX 업로드 → 마크다운 추출 |
+
+## Vercel 배포 (백엔드 전용)
+
+프론트와 **별도 Vercel 프로젝트**로 배포할 때:
+
+1. Vercel 대시보드에서 **새 프로젝트** → 같은 Git 저장소 연결.
+2. **Root Directory**를 `docmaster-backend`로 설정 (필수). 그래야 `api/parse.py`, `api/health.py`가 인식됩니다.
+3. 배포 후 `https://<프로젝트>.vercel.app/api/health` 로 접속해 `{"status":"ok", ...}` 가 나오면 정상입니다.
+4. 프론트는 이 URL을 파싱 서버로 사용합니다 (환경 변수 `VITE_API_BASE_URL` 또는 기본값).

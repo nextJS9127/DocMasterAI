@@ -11,13 +11,15 @@ import { translations } from './lib/translations';
 import type { Language } from './lib/translations';
 import { BestPracticeCards, type BestPracticeId } from './components/BestPracticeCards';
 
-/** 파싱 백엔드 URL. 빌드 시 VITE_API_BASE_URL 있으면 사용, 없으면 Vercel 도메인일 때 배포 백엔드 사용 */
+/** 파싱 백엔드 URL. 빌드 시 VITE_API_BASE_URL 있으면 사용, 없으면 Vercel/배포 환경에서는 배포 백엔드 사용 */
 const API_BASE_URL = (() => {
   const raw = import.meta.env.VITE_API_BASE_URL;
   if (typeof raw === 'string' && raw.trim() !== '') {
     return raw.trim().replace(/\/+$/, '');
   }
-  if (typeof window !== 'undefined' && /\.vercel\.app$/i.test(window.location?.hostname || '')) {
+  if (typeof window !== 'undefined') {
+    const host = window.location?.hostname || '';
+    if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8001';
     return 'https://doc-master-ai-wsjo.vercel.app';
   }
   return 'http://localhost:8001';
