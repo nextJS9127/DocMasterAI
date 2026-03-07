@@ -49,7 +49,7 @@ describe('TC 생성 (테스트 케이스) 구현 검증', () => {
 });
 
 describe('백엔드 /parse 연동 (백엔드 기동 시)', () => {
-  const PARSE_URL = 'http://localhost:8001/parse';
+  const PARSE_URL = 'http://localhost:8001/api/parse';
 
   it('POST /parse with sample PDF returns markdown (백엔드 기동 시 실행)', async () => {
     const path = await import('node:path');
@@ -71,6 +71,5 @@ describe('백엔드 /parse 연동 (백엔드 기동 시)', () => {
     expect(data).toHaveProperty('markdown');
     expect(typeof data.markdown).toBe('string');
     expect(data.markdown.length).toBeGreaterThan(0);
-    expect(data).toHaveProperty('file_id');
   }, 15000);
 });

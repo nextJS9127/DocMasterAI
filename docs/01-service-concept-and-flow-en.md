@@ -54,11 +54,12 @@ DocMaster AI is a **local-first document analysis and report generation tool** t
     ↓
 [Step 2] Click [Generate Report]
     ↓
-[Frontend] Send extracted Markdown + selected LLM API → Report generation request
+[2-phase pipeline] For Executive/Team reports:
+  Phase 1: Extracted md → LLM → Refined report Markdown (2nd-stage)
+  Phase 2: Refined md + selected template → LLM → Final HTML
+  (If refined md already exists and report type is unchanged, only Phase 2 runs when user changes HTML format.)
     ↓
-[LLM API] Generate HTML and Markdown per Executive/Team prompt and template
-    ↓
-[Frontend] View generated HTML / Download cleaned Markdown (.md)
+[Frontend] View generated HTML / Download refined Markdown (.md)
 ```
 
 ### 3.2 Step 1: Upload and Extract
@@ -73,10 +74,12 @@ DocMaster AI is a **local-first document analysis and report generation tool** t
 ### 3.3 Step 2: Choose Format and Generate Report
 
 1. User selects **Report format** (Executive / Team) and **HTML format** (default, proposal style, presentation slides, wiki style, preformat, etc.).
-2. Clicking **[Generate Report]** calls `generateReportClient` with the stored API key and selected LLM.
-3. The LLM receives: editable prompt + fixed HTML rules + chosen template/style guide + extracted Markdown (raw data).
-4. The model returns a **Markdown block** and a **complete HTML block** in order; the client parses them, shows the HTML in the report viewer, and offers the Markdown as “Download report (MD).”
-5. User can open “View Generated Report” in a popup and download HTML or Markdown as needed.
+2. Clicking **[Generate Report]** runs the **2-phase pipeline** for Executive/Team reports:
+   - **Phase 1** `generateRefinedMarkdownClient`: Extracted Markdown → LLM (editable prompt + quality rubric) → **Refined report Markdown (2nd-stage)**.
+   - **Phase 2** `generateHtmlFromMarkdownClient`: Refined md + chosen template → LLM (editable prompt + HTML fixed rules + dynamic format guidance) → **Final HTML**.
+3. If the user **only changes the HTML format** and clicks [Generate Report] again, and refined md already exists for the same report type, **Phase 1 is skipped** and only Phase 2 runs (HTML is regenerated from the existing refined md).
+4. The default HTML template has 7 slides (7 variables 1:1): summary, purpose_background, key_changes, process_flow, recommendations, risks, action_item. User-added variables/sections in the prompt can be reflected by extending slides/sections in the same style (dynamic format).
+5. User can open "View Generated Report" in a popup and download HTML or refined Markdown as needed.
 
 ### 3.4 Data and Security Flow
 

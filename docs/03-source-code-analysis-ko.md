@@ -19,7 +19,8 @@
 | `parsedMarkdown` | `string \| null` | Step 1 추출 결과 마크다운 |
 | `parsedFileName` | `string` | 업로드한 원본 파일명 |
 | `reportHtml` | `string \| null` | Step 2에서 LLM이 생성한 HTML |
-| `reportMarkdown` | `string \| null` | LLM이 출력한 정리 마크다운 블록 |
+| `reportMarkdown` | `string \| null` | 2단계 파이프라인 1차에서 생성한 정리 마크다운(2차 가공 md) |
+| `reportTypeForMarkdown` | `'executive' \| 'team' \| null` | 정리 md가 어떤 보고 유형으로 생성되었는지. 같은 유형이면 HTML 포맷만 바꿀 때 md 재생성 생략 |
 | `reportUsage` | `ReportUsage \| null` | 토큰 수·예상 비용 |
 | `lang` | `'ko' \| 'en'` | UI 언어 (localStorage `docmaster_lang`과 동기화) |
 | `showReportPopup` | `boolean` | 보고서 뷰어 팝업 표시 여부 |
@@ -27,49 +28,67 @@
 **주요 핸들러**
 
 - **handleFileSelect(file)**: `appStep = 'parsing'` → `POST http://localhost:8001/parse`에 `FormData` 전송 → 성공 시 `parsedMarkdown`, `parsedFileName` 설정, `appStep = 'parsed'`. 실패 시 `appStep = 'idle'`, `alert`로 에러 표시.
-- **handleGenerateReport(reportType, templateId)**: `parsedMarkdown`이 없으면 return. `localStorage`에서 `docmaster_llmProvider`, `docmaster_llmKey` 읽어 `generateReportClient` 호출 → `reportHtml`, `reportMarkdown`, `reportUsage` 설정. API 키 미설정·401/403 등은 `alert` 또는 토스트/설정 열기 유도.
+- **handleGenerateReport(reportType, templateId, highQuality)**: `parsedMarkdown`이 없으면 return. 경영진/실무 + non-pptx면 **2단계 파이프라인**: (1) `reportMarkdown`이 이미 있고 `reportTypeForMarkdown === reportType`이면 1단계 생략, 기존 정리 md로 `generateHtmlFromMarkdownClient`만 호출(HTML 포맷만 재생성). (2) 그 외에는 `generateRefinedMarkdownClient` → 정리 md 확보 → `generateHtmlFromMarkdownClient` → `reportHtml`, `reportMarkdown`, `reportTypeForMarkdown`, `reportUsage` 설정. API 키 미설정·401/403 등은 `alert` 또는 토스트/설정 열기 유도.
 - **handleReset**: `appStep = 'idle'`, 파싱·보고서 관련 상태 전부 초기화.
 
 레이아웃: 좌측 사이드바(진행 단계 트리, 핵심 역량, 데이터 처리 안내, 개발자 정보) + 메인 영역(업로드 구역 또는 `ParsedResultPanel`). 상단에 설정·도움말·언어 토글.
 
 ---
 
-## 2. `lib/llmClient.ts` — LLM 연동 및 보고서 생성
+## 2. LLM 연동 및 보고서 생성 — 모듈 구성
 
-### 2.1 역할
+보고서 **타입(도메인)별**로 프롬프트와 1단계 설정 로직이 분리되어 있습니다.
 
-- 경영진용/실무용 **편집 가능 프롬프트**(한/영)와 **HTML 출력 고정 규칙** 정의.
-- 설정에서 선택한 LLM(OpenAI, Claude, Gemini)에 맞춰 API 호출 및 **마크다운·HTML 블록 파싱**.
+### 2.1 디렉터리 구조
 
-### 2.2 프롬프트 구성
+| 경로 | 역할 |
+|------|------|
+| **`lib/llmClient.ts`** | LLM API 호출(OpenAI/Claude/Gemini), `generateReportClient` 등에서 **도메인 모듈의 설정을 불러와** 호출·응답 파싱만 수행. 공통 타입·유틸·템플릿 API(fetch/save) 포함. |
+| **`lib/prompts/executiveTeam.ts`** | 경영진/실무용 편집 가능 프롬프트(한/영), HTML 고정 규칙(`HTML_FIXED_EXECUTIVE`/`TEAM`), 템플릿 스타일 가이드(phase1, presentation2, wiki, preformat), PPTX 프롬프트, **getReportGenerationConfig**·**getTemplateForApi**, 맞춤 질문/정리용 프롬프트, C방식 스켈레톤·섹션 키·품질 루브릭 등. |
+| **`lib/prompts/features.ts`** | 개발 피처용 편집 가능 프롬프트(한/영), `HTML_FIXED_FEATURES`, **getReportGenerationConfig** (wiki 템플릿 고정). |
+| **`lib/prompts/testcases.ts`** | 테스트 케이스용 편집 가능 프롬프트(한/영), `HTML_FIXED_TESTCASES`, **getReportGenerationConfig** (wiki 템플릿 고정). |
 
-- **편집 가능 블록**: `DEFAULT_PROMPT_EXECUTIVE_EDITABLE` / `DEFAULT_PROMPT_TEAM_EDITABLE` (한글), `*_EN` (영문). 역할·입력 데이터 규칙·필수 출력 섹션·Execution Steps(Step 1~3) 등.
-- **고정 블록**: `HTML_FIXED_EXECUTIVE` / `HTML_FIXED_TEAM`. "순수 HTML만 반환", "```markdown / ```html 두 블록만 순서대로 출력" 등.
-- `getDefaultExecutiveEditable(lang)`, `getDefaultTeamEditable(lang)`: UI 언어에 따라 기본 편집 가능 프롬프트 반환. 실제 사용 시에는 `localStorage`에 저장된 값이 있으면 그대로 사용.
+- 경영진/실무/개발피처/테스트케이스 **프롬프트·스타일 가이드·1단계 조합 로직**은 위 `prompts/*.ts`에 정의되어 있고, `llmClient.ts`는 이들을 import해 사용·re-export합니다.
+
+### 2.2 프롬프트 구성 (경영진/실무)
+
+- **편집 가능 블록**: `DEFAULT_PROMPT_EXECUTIVE_EDITABLE` / `DEFAULT_PROMPT_TEAM_EDITABLE` (한글), `*_EN` (영문). 정의 위치: **`prompts/executiveTeam.ts`**. 역할·입력 데이터 규칙·필수 출력 섹션·Execution Steps 등.
+- **고정 블록**: `HTML_FIXED_EXECUTIVE` / `HTML_FIXED_TEAM`. 동일 파일에 정의. "순수 HTML만 반환", 변수 1:1 매핑, 동적 포맷(사용자 추가 변수·섹션 반영 가능) 등.
+- **getDefaultExecutiveEditable(lang)**, **getDefaultTeamEditable(lang)**: `executiveTeam.ts`에 정의. UI 언어에 따라 기본 편집 가능 프롬프트 반환. 실제 사용 시에는 `localStorage`에 저장된 값이 있으면 그대로 사용.
 
 ### 2.3 템플릿·스타일 가이드
 
-- **HtmlTemplateId**: `'default' | 'phase1' | 'presentation2' | 'wiki' | 'preformat'`.
-- **getTemplateForApi(templateId)**:
-  - `default`: 내장 슬라이드형 HTML 문자열(`DEFAULT_TEMPLATE`).
-  - `phase1`: 기획/제안서 스타일 가이드(구조·클래스·색상 요약).
+- **HtmlTemplateId**: `'default' | 'phase1' | 'presentation2' | 'wiki' | 'preformat' | 'pptx'`. 타입 정의: **`prompts/executiveTeam.ts`**.
+- **getTemplateForApi(templateId)** / **getTemplateContentById(id)**: **`prompts/executiveTeam.ts`**에 정의.
+  - `pptx`: 빈 문자열(pptx는 별도 시스템 프롬프트로 1회 호출).
+  - `default`: `DEFAULT_HTML_STYLE_GUIDE`(슬라이드형, 변수 `{{summary}}`, `{{purpose_background}}`, `{{key_changes}}`, `{{process_flow}}`, `{{recommendations}}`, `{{risks}}`, `{{action_item}}`).
+  - `phase1`: 기획/제안서 스타일 가이드.
   - `presentation2`: 16:9 슬라이드 스타일 가이드.
-  - `wiki`: 위키 붙여넣기용 단순 HTML(style/script/class 금지).
+  - `wiki`: 위키 붙여넣기용 단순 HTML(style/script/class 금지). 개발 피처·테스트 케이스에서도 사용.
   - `preformat`: 고정 템플릿 없이 LLM이 형식을 설계하라는 지시문.
 
 ### 2.4 `generateReportClient(markdownData, selection, apiKey, reportType, templateId)`
 
-1. **selection**으로 `LLM_SELECTION_MAP`에서 `provider`·`modelId` 결정 (예: `openai` → gpt-4o, `claude` → claude-sonnet-4-6).
-2. **SYSTEM_PROMPT**: 편집 가능 프롬프트(localStorage 또는 기본값) + 해당 유형의 HTML 고정 블록.
-3. **userPrompt**: "[원시 데이터]" + 추출 마크다운 + `DATA_BLOCK_INSTRUCTION`([[TABLE]]/[[DIAGRAM]] 해석) + 템플릿/스타일 가이드 + 템플릿별 지시(`TEMPLATE_INSTRUCTION_DEFAULT` 등).
-4. **provider별 호출**:
-   - **OpenAI**: `openai.chat.completions.create`, system/user 메시지, reasoning 모델이면 `reasoning_effort: 'high'`.
-   - **Claude**: `anthropic.messages.create`, system + user, `max_tokens: 4096`.
-   - **Gemini**: `genAI.getGenerativeModel` + `generateContent`, thinking 모델이면 `thinkingConfig`/`thinkingBudget` 지정.
-5. **응답 파싱**: `fullBody`에서 ` ```markdown ... ``` ` → `reportMarkdown`, ` ```html ... ``` ` → `htmlBody`. 없으면 `fullBody`가 HTML로 간주.
-6. **usage**: 각 provider 응답의 `usage`/`usageMetadata`로 `ReportUsage` 구성, `estimateCostUsd(selection, inputTokens, outputTokens)`로 예상 비용(USD) 계산.
+1. **reportType**에 따라 **도메인 모듈**에서 **getReportGenerationConfig** 호출:
+   - `features` → **prompts/features.ts**의 `getReportGenerationConfig(promptLang)` → `SYSTEM_PROMPT`와 `buildUserPrompt(markdownData)` 획득.
+   - `testcases` → **prompts/testcases.ts**의 `getReportGenerationConfig(promptLang)` → 동일.
+   - `executive`/`team` → **prompts/executiveTeam.ts**의 `getReportGenerationConfig(reportType, templateId, promptLang, executiveEditable, teamEditable)` → `SYSTEM_PROMPT`와 `buildUserPrompt(markdownData, templateContent)` 획득. `templateContent`는 API에서 fetch하거나 **getTemplateForApi(templateId)**로 조회.
+2. **userPrompt** = 위에서 받은 **buildUserPrompt(markdownData[, templateContent])** 결과.
+3. **provider별 호출**: OpenAI / Claude / Gemini로 system·user 메시지 전송.
+4. **응답 파싱**: `fullBody`에서 markdown/html 블록 또는 PPTX 시 슬라이드 JSON 추출.
+5. **usage**: 각 provider 응답으로 `ReportUsage` 구성, `estimateCostUsd`로 예상 비용 계산.
 
-반환: `{ html, markdown?, usage? }`.
+반환: `{ html, markdown?, usage?, slides? }`.
+
+경영진/실무 + non-pptx일 때는 **2단계 파이프라인**이 사용되며, `generateReportClient` 대신 아래 두 함수가 순서대로 호출됨.
+
+### 2.5 2단계 파이프라인: `generateRefinedMarkdownClient`, `generateHtmlFromMarkdownClient`
+
+- **generateRefinedMarkdownClient(rawMarkdown, selection, apiKey, reportType, highQuality)**  
+  `prompts/executiveTeam.ts`의 편집 가능 프롬프트(경영진/실무) + 품질 루브릭을 시스템으로, 원시 마크다운을 유저 메시지로 전달. 고품질 시 N회차(초안→검토→수정), 일반 시 1회 호출 내 자가 검토. 반환: `{ markdown(정리 md), usage? }`. (테스트케이스·개발피처는 1회 호출만.)
+
+- **generateHtmlFromMarkdownClient(refinedMarkdown, selection, apiKey, templateId, reportType)**  
+  **시스템**: reportType에 따라 `prompts/executiveTeam` 또는 `prompts/features`/`prompts/testcases`의 고정 블록 + 동적 지시. **유저**: [정리된 보고 내용] + [Target HTML Template] + 변수 채우기 지시. 정리 md를 선택한 템플릿/스타일에 맞춰 완성 HTML로 변환. 반환: `{ html, usage? }`.
 
 ---
 

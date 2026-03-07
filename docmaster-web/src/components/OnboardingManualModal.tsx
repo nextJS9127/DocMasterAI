@@ -1,4 +1,4 @@
-import { BookOpen, ListOrdered, AlertTriangle, Lightbulb } from 'lucide-react';
+import { BookOpen, ListOrdered, AlertTriangle, Lightbulb, FileCode, Type } from 'lucide-react';
 import { translations } from '../lib/translations';
 import type { Language } from '../lib/translations';
 
@@ -51,6 +51,40 @@ export function OnboardingManualModal({ onClose, lang }: OnboardingManualModalPr
                 </li>
               ))}
             </ol>
+          </section>
+
+          {/* 용어 */}
+          <section>
+            <h4 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-600 mb-3">
+              <Type size={16} />
+              {t.terminologyTitle}
+            </h4>
+            <p className="text-sm text-slate-600 leading-relaxed mb-3">{t.terminologyIntro}</p>
+            <ul className="space-y-2">
+              {[t.terminologyStep1, t.terminologyStep2, t.terminologyStep3, t.terminologyStep4].map((text, i) => (
+                <li key={i} className="flex gap-2 text-sm text-slate-600 leading-relaxed">
+                  <span className="text-indigo-500 font-medium shrink-0">{i + 1}.</span>
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* 템플릿 관리 */}
+          <section>
+            <h4 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-600 mb-3">
+              <FileCode size={16} />
+              {t.templateManageTitle}
+            </h4>
+            <p className="text-sm text-slate-600 leading-relaxed mb-3">{t.templateManageIntro}</p>
+            <ul className="space-y-2">
+              {[t.templateManageItem1, t.templateManageItem2, t.templateManageItem3, t.templateManageItem4].map((text, i) => (
+                <li key={i} className="flex gap-2 text-sm text-slate-600 leading-relaxed">
+                  <span className="text-indigo-500 font-medium shrink-0">{i + 1}.</span>
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
           </section>
 
           {/* 주의 사항 */}

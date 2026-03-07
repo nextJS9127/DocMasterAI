@@ -34,51 +34,51 @@ Layout: left sidebar (progress steps tree, core capabilities, data notice, devel
 
 ---
 
-## 2. `lib/llmClient.ts` — LLM Integration and Report Generation
+## 2. LLM Integration and Report Generation — Module Layout
 
-### 2.1 Role
+Report **type (domain)** logic is split by module: prompts and first-step config live under `lib/prompts/`, and `lib/llmClient.ts` orchestrates calls and parsing.
 
-- Defines **editable prompts** (Executive/Team, KO/EN) and **fixed HTML output rules**.
-- Calls the selected LLM (OpenAI, Claude, Gemini) and parses **Markdown and HTML blocks** from the response.
+### 2.1 Directory structure
 
-### 2.2 Prompt assembly
+| Path | Role |
+|------|------|
+| **`lib/llmClient.ts`** | LLM API calls (OpenAI / Claude / Gemini). Loads **config from domain modules** in `generateReportClient` etc., then performs the call and response parsing. Also holds shared types, utils, and template API (fetch/save). |
+| **`lib/prompts/executiveTeam.ts`** | Executive/Team editable prompts (KO/EN), fixed HTML rules (`HTML_FIXED_EXECUTIVE`/`TEAM`), template style guides (phase1, presentation2, wiki, preformat), PPTX prompts, **getReportGenerationConfig**, **getTemplateForApi**, customization-question/refine prompts, C-style skeleton, section keys, quality rubric, etc. |
+| **`lib/prompts/features.ts`** | Development-features editable prompts (KO/EN), `HTML_FIXED_FEATURES`, **getReportGenerationConfig** (wiki template fixed). |
+| **`lib/prompts/testcases.ts`** | Test-case editable prompts (KO/EN), `HTML_FIXED_TESTCASES`, **getReportGenerationConfig** (wiki template fixed). |
 
-- **Editable block**: `DEFAULT_PROMPT_EXECUTIVE_EDITABLE` / `DEFAULT_PROMPT_TEAM_EDITABLE` (KO), `*_EN` (EN). Role, input data rules, required output sections, Execution Steps (Step 1–3), etc.
-- **Fixed block**: `HTML_FIXED_EXECUTIVE` / `HTML_FIXED_TEAM`. “Return only raw HTML”, “output exactly two blocks in order: ```markdown and ```html”.
-- `getDefaultExecutiveEditable(lang)` / `getDefaultTeamEditable(lang)`: Return default editable prompt for the given UI language. At runtime, stored values in localStorage override these when present.
+Prompts, style guides, and first-step assembly logic for executive/team, features, and testcases are defined in the above `prompts/*.ts` files; `llmClient.ts` imports and re-exports them as needed.
+
+### 2.2 Prompt assembly (Executive / Team)
+
+- **Editable block**: `DEFAULT_PROMPT_EXECUTIVE_EDITABLE` / `DEFAULT_PROMPT_TEAM_EDITABLE` (KO), `*_EN` (EN). Defined in **`prompts/executiveTeam.ts`**. Role, input rules, required sections, Execution Steps, etc.
+- **Fixed block**: `HTML_FIXED_EXECUTIVE` / `HTML_FIXED_TEAM`. Same file. "Return only raw HTML", variable 1:1 mapping, dynamic format (user-added variables/sections), etc.
+- **getDefaultExecutiveEditable(lang)** / **getDefaultTeamEditable(lang)**: Defined in `executiveTeam.ts`. Return default editable prompt for the UI language. At runtime, localStorage overrides when present.
 
 ### 2.3 Templates and style guides
 
-- **HtmlTemplateId**: `'default' | 'phase1' | 'presentation2' | 'wiki' | 'preformat'`.
-- **getTemplateForApi(templateId)**:
-  - `default`: Inline slide-style HTML (`DEFAULT_TEMPLATE`).
-  - `phase1`: Proposal/planning style guide (structure, classes, colors).
-  - `presentation2`: 16:9 slide style guide.
-  - `wiki`: Wiki paste-friendly minimal HTML (no style/script/class).
-  - `preformat`: Instruction for LLM to design format without a fixed template.
+- **HtmlTemplateId**: `'default' | 'phase1' | 'presentation2' | 'wiki' | 'preformat' | 'pptx'`. Type defined in **`prompts/executiveTeam.ts`**.
+- **getTemplateForApi(templateId)** / **getTemplateContentById(id)**: Defined in **`prompts/executiveTeam.ts`**. `pptx` returns empty string; `default` uses `DEFAULT_HTML_STYLE_GUIDE`; `phase1`/`presentation2`/`wiki`/`preformat` use the corresponding style-guide constants. Features and testcases use the wiki template.
 
 ### 2.4 `generateReportClient(markdownData, selection, apiKey, reportType, templateId)`
 
-1. Resolve **provider** and **modelId** from **selection** via `LLM_SELECTION_MAP` (e.g. `openai` → gpt-4o, `claude` → claude-sonnet-4-6).
-2. **SYSTEM_PROMPT**: Editable prompt (localStorage or default) + fixed HTML block for the report type.
-3. **userPrompt**: “[Extracted Markdown Data]” + raw markdown + `DATA_BLOCK_INSTRUCTION` ([[TABLE]]/[[DIAGRAM]] interpretation) + template/style guide + template-specific instructions.
-4. **Provider-specific call**:
-   - **OpenAI**: `openai.chat.completions.create` with system/user messages; `reasoning_effort: 'high'` for reasoning models.
-   - **Claude**: `anthropic.messages.create` with system + user, `max_tokens: 4096`.
-   - **Gemini**: `genAI.getGenerativeModel` + `generateContent`; for thinking models, set `thinkingConfig` / `thinkingBudget`.
-5. **Response parsing**: From `fullBody`, extract ```markdown ... ``` → `reportMarkdown`, ```html ... ``` → `htmlBody`. If no html block, treat `fullBody` as HTML.
-6. **usage**: Build `ReportUsage` from provider `usage` / `usageMetadata`; `estimateCostUsd(selection, inputTokens, outputTokens)` for estimated USD cost.
+1. **getReportGenerationConfig** is called from the **domain module** according to **reportType** (features → `prompts/features.ts`, testcases → `prompts/testcases.ts`, executive/team → `prompts/executiveTeam.ts`). It returns **SYSTEM_PROMPT** and **buildUserPrompt(markdownData[, templateContent])**.
+2. **userPrompt** = result of **buildUserPrompt** from that config. For executive/team, `templateContent` is fetched from API or **getTemplateForApi(templateId)**.
+3. **Provider-specific call**: Send system/user messages to OpenAI / Claude / Gemini.
+4. **Response parsing**: Extract markdown/html blocks from `fullBody`, or slide JSON for pptx.
+5. **usage**: Build `ReportUsage` from provider response; `estimateCostUsd` for estimated cost.
 
-Returns: `{ html, markdown?, usage? }`.
+Returns: `{ html, markdown?, usage?, slides? }`.
 
 ---
+
 
 ## 3. Component Details
 
 ### 3.1 `UploadZone.tsx`
 
 - **Props**: `onFileSelect`, `disabled`, `isProcessing`, `lang`, `onNoKeyAttempt?`.
-- **Behavior**: File selection via drag-and-drop or click. Only `application/pdf` or `.pptx`; others trigger `t.onlyFile` alert. If `disabled` and `onNoKeyAttempt` is set, upload attempt calls `onNoKeyAttempt()` (e.g. API key toast). While `isProcessing`, shows spinner and “Python server is extracting...” message.
+- **Behavior**: File selection via drag-and-drop or click. Only `application/pdf` or `.pptx`; others trigger `t.onlyFile` alert. If `disabled` and `onNoKeyAttempt` is set, upload attempt calls `onNoKeyAttempt()` (e.g. API key toast). While `isProcessing`, shows spinner and "Python server is extracting..." message.
 - **File input**: Hidden `<input type="file" accept=".pdf,.pptx">` with ref; zone click triggers `fileInputRef.current?.click()`.
 
 ### 3.2 `ParsedResultPanel.tsx`
@@ -86,14 +86,14 @@ Returns: `{ html, markdown?, usage? }`.
 - **Props**: `parsedMarkdown`, `parsedFileName`, `onGenerateReport(reportType, templateId)`, `onReset`, `reportReady`, `reportMarkdown`, `reportUsage`, `onViewReport`, `lang`.
 - **Local state**: `reportType` ('executive'|'team'), `htmlTemplateId` (HtmlTemplateId), `isGenerating`.
 - **Features**:
-  - **Step 1 done banner**: “Step 1 Done — Document Extraction Result”, parsed file name.
-  - **Preview**: First portion of extracted Markdown; “more lines” hint with download CTA.
+  - **Step 1 done banner**: "Step 1 Done — Document Extraction Result", parsed file name.
+  - **Preview**: First portion of extracted Markdown; "more lines" hint with download CTA.
   - **Download extraction**: `handleDownloadMd` — blob from `parsedMarkdown`, download as `{basename}_extracted.md`.
   - **Report format**: Radio for Executive / Team.
   - **HTML format**: Select for default / phase1 / presentation2 / wiki / preformat.
   - **Generate report**: Button calls `onGenerateReport(reportType, htmlTemplateId)`; loading state via `isGenerating`.
-  - **Report ready**: “Report generation complete” + token/cost + “Download report (MD)” + “View Generated Report”. `handleDownloadReportMd` saves `reportMarkdown` as `{basename}_report.md`.
-- **Reset**: “Analyze another file” calls `onReset()`.
+  - **Report ready**: "Report generation complete" + token/cost + "Download report (MD)" + "View Generated Report". `handleDownloadReportMd` saves `reportMarkdown` as `{basename}_report.md`.
+- **Reset**: "Analyze another file" calls `onReset()`.
 
 ### 3.3 `ReportViewer.tsx`
 
@@ -104,9 +104,9 @@ Returns: `{ html, markdown?, usage? }`.
 ### 3.4 `SettingsModal.tsx`
 
 - **Props**: `onClose`, `onSave`, `lang`.
-- **Tabs**: API Key / Executive / Team. API tab: LLM select (openai-gpt52, openai-gpt51, openai, claude, claude-opus, gemini3, gemini-25-pro), API key input (password type). Executive/Team tabs: editable prompt textarea, “Reset to default”, read-only fixed HTML rules.
+- **Tabs**: API Key / Executive / Team. API tab: LLM select (openai-gpt52, openai-gpt51, openai, claude, claude-opus, gemini3, gemini-25-pro), API key input (password type). Executive/Team tabs: editable prompt textarea, "Reset to default", read-only fixed HTML rules.
 - **Save**: `handleSave` writes `docmaster_llmProvider`, `docmaster_llmKey`, `docmaster_promptExecutiveEditable`, `docmaster_promptTeamEditable` to localStorage, then calls `onSave()`.
-- **Language switch**: When `lang` changes, if current prompt text equals the “other language” default, it is replaced with the default for the selected language.
+- **Language switch**: When `lang` changes, if current prompt text equals the "other language" default, it is replaced with the default for the selected language.
 
 ### 3.5 `OnboardingManualModal.tsx`
 
@@ -135,7 +135,7 @@ Returns: `{ html, markdown?, usage? }`.
 - **CORS**: Allows `localhost:5173`–`5176` (Vite dev server).
 - **GET /health**: Returns server status and `outputs_dir`.
 - **POST /parse**: Accepts `UploadFile`, checks extension `.pdf`/`.pptx`, writes to temp file, calls `pdf_to_markdown` or `pptx_to_markdown`. Optionally runs `refine_extracted_markdown` and `apply_normalizations`. In **finally**, removes temp file with `os.unlink`. Response: `{ markdown, filename, file_type, meta }`. (Extraction result is not stored on server.)
-- **GET /result/{file_id}**, **GET /result/{file_id}/download**, **GET /results**: Legacy for previous “save” mode; not used in current default flow.
+- **GET /result/{file_id}**, **GET /result/{file_id}/download**, **GET /results**: Legacy for previous "save" mode; not used in current default flow.
 
 ### 5.2 `app/pdf_utils.py`
 
@@ -147,7 +147,7 @@ Returns: `{ html, markdown?, usage? }`.
 
 - **_flatten_shapes(shapes)**: Recursively flattens group shapes.
 - **_collect_from_shapes(shapes, title_holder)**: After flattening, sorts by top/left and iterates. Tables → `wrap_table` for Markdown table inside `[[TABLE]]`. Charts → `wrap_diagram`(caption). SmartArt etc. (GraphicFrame) → `wrap_diagram("SmartArt/다이어그램")`. Text: placeholder title goes to title_holder; rest as indented bullets.
-- **pptx_to_markdown(pptx_path, out_meta)**: Per slide, builds “## 🖼 Slide N” or “## Title” and appends collected body. Sets `out_meta['slide_count']`.
+- **pptx_to_markdown(pptx_path, out_meta)**: Per slide, builds "## 🖼 Slide N" or "## Title" and appends collected body. Sets `out_meta['slide_count']`.
 
 ### 5.4 `app/md_refine.py`
 
@@ -155,7 +155,7 @@ Returns: `{ html, markdown?, usage? }`.
 
 ### 5.5 `app/normalizer.py`
 
-- **apply_normalizations(text, normalize_amount, normalize_date)**: Amount patterns (number + 원/KRW/₩) → “number KRW”; date patterns → ISO YYYY-MM-DD. Conservative; does not alter content inside `[[TABLE]]`/`[[DIAGRAM]]`.
+- **apply_normalizations(text, normalize_amount, normalize_date)**: Amount patterns (number + 원/KRW/₩) → "number KRW"; date patterns → ISO YYYY-MM-DD. Conservative; does not alter content inside `[[TABLE]]`/`[[DIAGRAM]]`.
 
 ### 5.6 `app/extract_constants.py`
 
@@ -169,6 +169,6 @@ Returns: `{ html, markdown?, usage? }`.
 1. **Settings**: User saves API key, LLM, prompts in settings modal → localStorage.
 2. **Step 1**: File selected → `POST /parse` → backend extracts and deletes file, returns Markdown only → frontend sets `parsedMarkdown`, etc.
 3. **Step 2**: User chooses report format and HTML template → [Generate Report] → `generateReportClient` reads prompts and key from localStorage, calls LLM → parses markdown/html blocks from response → sets `reportHtml`, `reportMarkdown`, `reportUsage`.
-4. **Result**: “View Generated Report” shows `reportHtml` in ReportViewer; “Download report (MD)” saves `reportMarkdown` to a file.
+4. **Result**: "View Generated Report" shows `reportHtml` in ReportViewer; "Download report (MD)" saves `reportMarkdown` to a file.
 
 In this flow, the original file exists only temporarily on the backend and is then deleted; only the extracted Markdown is sent to the client and to the LLM.

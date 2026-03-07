@@ -185,6 +185,7 @@ export function PromptSetModal({ outcomeId, lang, onClose }: PromptSetModalProps
         {outcomeId === 'testcases' && (
           <div className="p-6 overflow-y-auto flex-1 min-h-0">
             <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4">{t.promptEditableNotice}</p>
+            <p className="text-xs text-indigo-600 mb-4">{t.promptTestcasesSaveHint}</p>
             <div className="flex justify-end mb-2">
               <button type="button" onClick={() => setPromptTestcases(getDefaultTestcasesEditable(promptLang))} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
                 {t.resetPrompts}

@@ -11,6 +11,20 @@
 
 ---
 
+## Why DocMaster? (쓸 만한 이유)
+
+DocMaster는 다음 **세 가지**를 지키려고 설계되었습니다.
+
+| # | 핵심 | 설명 |
+|---|------|------|
+| **1** | **올린 파일에서 정확히 자료 추출** | PDF/PPTX에서 텍스트·표·슬라이드 구조를 추출합니다. 복잡한 표와 차트 영역도 인식해, 이후 단계가 놓치지 않도록 합니다. |
+| **2** | **2차 정리 md 생성 (매우 중요)** | 추출된 원본만으로는 부족합니다. LLM으로 **경영진용·실무용 보고서 초안(정리 md)**을 만들고, 품질 루브릭·N회차 옵션으로 알맹이 있는 문서가 나오도록 합니다. |
+| **3** | **멋진 HTML 레포트 디자인** | 정리된 내용을 여러 HTML 포맷(기본 슬라이드형, 기획서 스타일, 프레젠테이션, 위키 등)으로 꾸며, 바로 다운로드·공유할 수 있게 합니다. |
+
+즉, **추출 → 정리 md → HTML 디자인** 세 단계가 모두 갖춰져 있어야 “쓸 만하다”고 느끼실 수 있도록 만든 서비스입니다.
+
+---
+
 ## Screenshots
 
 | Upload & Extract | Report (Executive / Team) |
@@ -23,11 +37,13 @@
 
 ## Features
 
-- **Local-first parsing** — PDF/PPTX are processed on your machine (Python backend). No upload to third-party document APIs.
-- **Rich extraction** — Tables, slide structure, and text from PDF (pymupdf4llm, pdfplumber) and PPTX (python-pptx). Optional OCR fallback for image-only pages.
-- **LLM of your choice** — Connect OpenAI (GPT-4o, GPT-5.x), Anthropic (Claude), or Google (Gemini). API keys stay in your browser; only extracted text is sent to the provider you select.
-- **Two report modes** — **Executive** (1-pager, risks & decisions) and **Team** (detailed, actionable). Editable prompts and multiple HTML templates (Tailwind, wiki-style, presentation, etc.).
-- **Bilingual UI** — Korean and English. Default prompts follow the selected language.
+DocMaster는 **① 정확한 추출 → ② 2차 정리 md(핵심) → ③ HTML 레포트 디자인** 세 단계를 한 흐름으로 제공합니다.
+
+- **정확한 추출 (Step 1)** — PDF/PPTX를 로컬 Python 백엔드에서 처리. 표·슬라이드 구조·텍스트 추출. 서드파티 문서 API 없음.
+- **2차 정리 md (Step 2, 핵심)** — 추출 결과를 LLM으로 분석해 경영진용·실무용 보고서 초안(정리 md) 생성. 품질 루브릭·고품질 N회차 옵션 지원.
+- **HTML 레포트 디자인 (Step 3)** — 정리된 내용을 여러 템플릿(기본 슬라이드형, 기획서 스타일, 프레젠테이션, 위키, PPTX 등)으로 꾸며 즉시 다운로드·활용 가능.
+- **선택한 LLM 사용** — OpenAI(GPT-4o, 5.x), Anthropic(Claude), Google(Gemini). API 키는 브라우저에만 저장되며, 추출 텍스트만 선택한 제공업체로 전송.
+- **한·영 UI** — 한국어/영어 전환, 프롬프트도 선택 언어에 맞춤.
 
 ---
 

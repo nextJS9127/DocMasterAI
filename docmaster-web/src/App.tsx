@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Brain, Settings, CheckCircle2, ChevronRight, Lock, Upload, User, Mail, BookOpen, HelpCircle, KeyRound, X } from 'lucide-react';
+import { Brain, Settings, CheckCircle2, ChevronRight, Lock, Upload, User, Mail, BookOpen, HelpCircle, KeyRound, X, FileCode } from 'lucide-react';
 import { SettingsModal } from './components/SettingsModal';
+import { TemplateAdminModal } from './components/TemplateAdminModal';
 import { PromptSetModal } from './components/PromptSetModal';
 import { OnboardingManualModal } from './components/OnboardingManualModal';
 import { UploadZone } from './components/UploadZone';
 import { ReportViewer } from './components/ReportViewer';
 import { ParsedResultPanel } from './components/ParsedResultPanel';
-import { generateReportClient, type ReportUsage, type HtmlTemplateId, type ReportType } from './lib/llmClient';
+import { LoadingPopup } from './components/LoadingPopup';
+import { generateReportClient, generateRefinedMarkdownClient, generateHtmlFromMarkdownClient, generateCustomizationQuestionsFromDraftClient, refineMarkdownWithAnswersClient, type ReportUsage, type HtmlTemplateId, type ReportType, type CustomizationQuestion } from './lib/llmClient';
+import { buildAndDownloadPptx } from './lib/pptxExport';
 import { translations } from './lib/translations';
 import type { Language } from './lib/translations';
 import { BestPracticeCards, type BestPracticeId } from './components/BestPracticeCards';
+import { CustomizationQuestionModal } from './components/CustomizationQuestionModal';
 
 /** 파싱 백엔드 URL. 빌드 시 VITE_API_BASE_URL 있으면 사용, 없으면 Vercel/배포 환경에서는 배포 백엔드 사용 */
 const API_BASE_URL = (() => {
@@ -30,6 +34,7 @@ type AppStep = 'idle' | 'parsing' | 'parsed' | 'generating';
 
 function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isTemplateAdminOpen, setIsTemplateAdminOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [hasKeys, setHasKeys] = useState(false);
   const [lang, setLang] = useState<Language>('ko');
@@ -41,9 +46,29 @@ function App() {
   const [parsedFileId, setParsedFileId] = useState<string | null>(null); // [NEW] 서버 저장 file_id
   const [reportHtml, setReportHtml] = useState<string | null>(null);
   const [reportMarkdown, setReportMarkdown] = useState<string | null>(null);
+  /** 2차 가공 md가 어떤 보고 유형(executive/team)으로 생성되었는지. 같은 유형이면 HTML 포맷만 바꿀 때 md 재생성 생략 */
+  const [reportTypeForMarkdown, setReportTypeForMarkdown] = useState<ReportType | null>(null);
   const [reportUsage, setReportUsage] = useState<ReportUsage | null>(null);
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [showKeyRequiredToast, setShowKeyRequiredToast] = useState(false);
+  /** 로딩 팝업: parsing | generating 시 표시, fileName으로 상태 문구에 반영 */
+  const [loadingContext, setLoadingContext] = useState<{
+    phase: 'parsing' | 'generating';
+    fileName: string;
+  } | null>(null);
+
+  /** 맞춤 질문 팝업: 정리 md 초안 완료 후 질문 생성 시 설정. 건너뛰기/제출 시 여기 값으로 HTML 생성 진행 */
+  const [customizationDraft, setCustomizationDraft] = useState<{
+    refinedMd: string;
+    questions: CustomizationQuestion[];
+    usage1?: ReportUsage;
+    templateId: HtmlTemplateId;
+    reportType: 'executive' | 'team';
+    llmProvider: string;
+    llmKey: string;
+    highQuality: boolean;
+    apiBaseUrl: string;
+  } | null>(null);
 
   const [selectedBestPractice, setSelectedBestPractice] = useState<BestPracticeId>(() => {
     try {
@@ -80,6 +105,7 @@ function App() {
   // ─── Step 1: 파일 업로드 → Python 파싱만 수행 ──────────────────────────────
   const handleFileSelect = async (file: File) => {
     setAppStep('parsing');
+    setLoadingContext({ phase: 'parsing', fileName: file.name });
     const parseUrl = `${API_BASE_URL}/api/parse`;
     try {
       console.log('파싱 요청:', parseUrl);
@@ -106,44 +132,189 @@ function App() {
       setParsedFileName(file.name);
       setParsedFileId(fileId); // [NEW]
       setAppStep('parsed');
+      setLoadingContext(null);
     } catch (error: unknown) {
       console.error('파싱 오류:', error);
       const message = error instanceof Error ? error.message : String(error);
-      alert(`문서 추출 중 오류가 발생했습니다:\n${message}`);
+      alert(`${t.errors.extractionFailed}:\n${message}`);
       setAppStep('idle');
+      setLoadingContext(null);
     }
   };
 
   // ─── Step 2: parsedMarkdown + reportType + templateId → LLM 보고서 생성 ────────────────
   const handleGenerateReport = async (
     reportType: ReportType,
-    templateId: HtmlTemplateId = 'default'
+    templateId: HtmlTemplateId = 'default',
+    highQuality = false
   ) => {
     if (!parsedMarkdown) return;
 
-    const llmProvider = localStorage.getItem('docmaster_llmProvider') || 'openai';
+    const llmProvider = localStorage.getItem('docmaster_llmProvider') || 'openai-gpt51';
     const llmKey = localStorage.getItem('docmaster_llmKey')?.trim();
 
     if (!llmKey) {
-      alert('LLM API Key가 설정되지 않았습니다. 우측 상단 [설정]에서 입력해주세요.');
+      alert(t.errors.apiKeyRequired);
       return;
     }
 
     setAppStep('generating');
+    setLoadingContext({ phase: 'generating', fileName: parsedFileName || '' });
+    console.log('[DocMaster] 보고서 생성 시작', { reportType, templateId, highQuality, useTwoPhase: (reportType === 'executive' || reportType === 'team' || reportType === 'testcases' || reportType === 'features') && templateId !== 'pptx' });
     try {
-      console.log('LLM으로 리포트 생성 중...', { reportType, templateId });
-      const { html, markdown, usage } = await generateReportClient(
+      // 기획서 기반 보고서(경영진/실무) + pptx 아님 → 2단계 파이프라인 (정리 md → HTML)
+      const useTwoPhase = (reportType === 'executive' || reportType === 'team' || reportType === 'testcases' || reportType === 'features') && templateId !== 'pptx';
+
+      if (useTwoPhase) {
+        // 5번: 이미 2차 가공 md가 있고, 같은 보고 유형이면 → HTML 포맷만 다시 생성(정리 md 재생성 안 함)
+        const reuseRefinedMd = reportMarkdown != null && reportTypeForMarkdown === reportType;
+        let refinedMd: string;
+        let usage1: ReportUsage | undefined;
+
+        if (reuseRefinedMd) {
+          console.log('[DocMaster] 2단계: 기존 정리 md 사용, HTML만 재생성', { templateId });
+          refinedMd = reportMarkdown;
+        } else {
+          console.log('[DocMaster] 2단계: 정리 md 생성 중...', { reportType, highQuality });
+          const result = await generateRefinedMarkdownClient(
+            parsedMarkdown,
+            llmProvider,
+            llmKey,
+            reportType,
+            highQuality
+          );
+          if (!result.markdown?.trim()) {
+            console.error('정리 md 생성 실패: 결과가 비어 있음', {
+              reportType,
+              markdownLength: result.markdown?.length ?? 0,
+              usage: result.usage,
+            });
+            throw new Error(t.errors.refinedContentFailed);
+          }
+          refinedMd = result.markdown;
+          usage1 = result.usage;
+          setReportMarkdown(refinedMd);
+          setReportTypeForMarkdown(reportType);
+
+          // 맞춤 질문 생성: 경영진/실무만 (테스트케이스·개발피처는 건너뛰고 바로 HTML 생성)
+          const isExecutiveOrTeam = reportType === 'executive' || reportType === 'team';
+          if (isExecutiveOrTeam) {
+            const { questions } = await generateCustomizationQuestionsFromDraftClient(refinedMd, reportType, llmProvider, llmKey);
+            if (questions.length > 0) {
+              setCustomizationDraft({
+                refinedMd,
+                questions,
+                usage1,
+                templateId,
+                reportType,
+                llmProvider,
+                llmKey,
+                highQuality,
+                apiBaseUrl: API_BASE_URL,
+              });
+              setLoadingContext(null);
+              console.log('[DocMaster] 맞춤 질문 팝업 표시', { questionCount: questions.length });
+              return;
+            }
+          }
+        }
+
+        console.log('[DocMaster] 2단계: 정리 md 완료, HTML 생성 중...', { templateId: reportType === 'testcases' ? 'testcases' : reportType === 'features' ? 'features' : templateId, reportType });
+        const htmlTemplateId: HtmlTemplateId =
+          reportType === 'testcases' ? 'testcases' : reportType === 'features' ? 'features' : templateId;
+        try {
+          const { html, usage: usage2 } = await generateHtmlFromMarkdownClient(
+            refinedMd,
+            llmProvider,
+            llmKey,
+            htmlTemplateId,
+            reportType,
+            API_BASE_URL,
+            highQuality
+          );
+          if (!html?.trim()) {
+            throw new Error('HTML 생성 결과가 비어 있습니다.');
+          }
+          setReportHtml(html);
+          const combinedUsage: ReportUsage | undefined =
+            usage1 && usage2
+              ? {
+                  inputTokens: usage1.inputTokens + usage2.inputTokens,
+                  outputTokens: usage1.outputTokens + usage2.outputTokens,
+                  totalTokens: usage1.totalTokens + usage2.totalTokens,
+                  estimatedCostUsd: (usage1.estimatedCostUsd ?? 0) + (usage2.estimatedCostUsd ?? 0),
+                }
+              : usage2 ?? usage1;
+          setReportUsage(combinedUsage ?? null);
+          setAppStep('parsed');
+          setLoadingContext(null);
+          console.log('[DocMaster] 보고서 생성 완료 (2단계)');
+          return;
+        } catch (htmlError) {
+          // HTML 생성 실패 시에도 정리 md는 이미 설정되어 있음 → 사용자에게 정리 md라도 보이도록 함
+          console.error('[DocMaster] 2단계 HTML 생성 오류', htmlError);
+          setReportHtml(null);
+          setReportUsage(usage1 ?? null);
+          setAppStep('parsed');
+          setLoadingContext(null);
+          alert(t.parsedPanel.htmlFailedRefinedMdAvailable);
+          return;
+        }
+      }
+
+      console.log('[DocMaster] 1단계(통합) 리포트 생성 중...', { reportType, templateId });
+      console.log('[DocMaster] generateReportClient 호출 직전', { parsedMarkdownLength: parsedMarkdown?.length ?? 0 });
+      const { html, markdown, usage, slides } = await generateReportClient(
         parsedMarkdown,
         llmProvider,
         llmKey,
         reportType,
-        templateId
+        templateId,
+        API_BASE_URL
       );
-      setReportHtml(html);
-      setReportMarkdown(markdown ?? null);
+      console.log('[DocMaster] 1단계 반환값', {
+        reportType,
+        htmlLength: html?.length ?? 0,
+        markdownLength: markdown?.length ?? 0,
+        hasSlides: !!slides?.length,
+      });
+      if (slides?.length) {
+        const baseName = parsedFileName.replace(/\.[^.]+$/i, '') || 'report';
+        buildAndDownloadPptx(slides, baseName);
+        setReportHtml(null);
+        setReportMarkdown(null);
+        setReportUsage(usage ?? null);
+        setAppStep('parsed');
+        setLoadingContext(null);
+        alert(t.parsedPanel.reportPptxDownloaded);
+        return;
+      }
+      const isTcOrFeatures = reportType === 'testcases' || reportType === 'features';
+      const htmlToSet = isTcOrFeatures && (!html || html.length === 0)
+        ? t.parsedPanel.emptyReportHtml
+        : html;
+      const mdToSet = (markdown != null && markdown.length > 0)
+        ? markdown
+        : isTcOrFeatures
+          ? t.parsedPanel.emptyReportMd
+          : null;
+      console.log('[DocMaster] 1단계 상태 설정', {
+        isTcOrFeatures,
+        htmlToSetLength: htmlToSet?.length ?? 0,
+        mdToSetLength: mdToSet?.length ?? 0,
+        willOpenPopup: isTcOrFeatures,
+      });
+      setReportHtml(htmlToSet);
+      setReportMarkdown(mdToSet);
       setReportUsage(usage ?? null);
+      setAppStep('parsed');
+      setLoadingContext(null);
+      console.log('[DocMaster] 보고서 생성 완료 (1단계)');
+      if (isTcOrFeatures) {
+        setShowReportPopup(true);
+      }
     } catch (error: unknown) {
-      console.error('보고서 생성 오류:', error);
+      console.error('[DocMaster] 보고서 생성 오류:', error);
       const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
       // 인증/키 불일치: 선택한 LLM과 다른 제공업체 키를 넣은 경우
       const isKeyOrAuthError =
@@ -188,28 +359,116 @@ function App() {
           `${t.reportError.keyMismatchTitle}\n\n${t.reportError.keyMismatchMessage}`
         );
       } else if (isContextLength) {
-        alert(
-          '추출된 문서가 너무 깁니다 (컨텍스트 길이 초과).\n\n' +
-            '• 더 짧은 문서로 시도하거나, PDF/PPT 페이지 수를 줄여 보세요.\n' +
-            '• 또는 설정에서 다른 LLM을 선택해 보세요.'
-        );
+        alert(t.errors.contextTooLong);
       } else if (is429OrQuota) {
-        alert(
-          'API 한도에 도달했습니다 (429).\n\n' +
-            '• 요청 빈도/사용량 한도: 잠시 후 다시 시도하거나 다른 LLM을 선택해 보세요.\n' +
-            '• 인풋이 너무 길 때도 429가 날 수 있으니, 문서가 매우 길면 짧게 나눠 보세요.'
-        );
+        alert(t.errors.rateLimit429);
       } else if (is503OrOverload) {
-        alert(
-          '선택한 모델(Google Gemini 등)이 일시적으로 과부하 상태입니다 (503).\n\n' +
-            '• 잠시 후 다시 시도해 보세요.\n' +
-            '• 계속되면 [설정]에서 다른 LLM(예: OpenAI, Claude)으로 바꿔 보세요.'
-        );
+        alert(t.errors.overloaded503);
       } else {
-        alert(`보고서 생성 중 오류가 발생했습니다:\n${error instanceof Error ? error.message : String(error)}`);
+        alert(`${t.errors.reportGenerateFailed}:\n${error instanceof Error ? error.message : String(error)}`);
       }
       setAppStep('parsed'); // 오류 시 parsed 상태로 복원 (재시도 가능)
+      setLoadingContext(null);
     }
+  };
+
+  /** 맞춤 질문 팝업: 건너뛰기 → 초안 그대로 HTML 생성 */
+  const handleCustomizationSkip = () => {
+    const d = customizationDraft;
+    if (!d) return;
+    setCustomizationDraft(null);
+    setLoadingContext({ phase: 'generating', fileName: parsedFileName || '' });
+    (async () => {
+      try {
+        const { html, usage: usage2 } = await generateHtmlFromMarkdownClient(
+          d.refinedMd,
+          d.llmProvider,
+          d.llmKey,
+          d.templateId,
+          d.reportType,
+          d.apiBaseUrl,
+          d.highQuality
+        );
+        setReportHtml(html);
+        setReportMarkdown(d.refinedMd);
+        setReportTypeForMarkdown(d.reportType);
+        setReportUsage(
+          d.usage1 && usage2
+            ? {
+                inputTokens: d.usage1.inputTokens + usage2.inputTokens,
+                outputTokens: d.usage1.outputTokens + usage2.outputTokens,
+                totalTokens: d.usage1.totalTokens + usage2.totalTokens,
+                estimatedCostUsd: (d.usage1.estimatedCostUsd ?? 0) + (usage2.estimatedCostUsd ?? 0),
+              }
+            : usage2 ?? d.usage1 ?? null
+        );
+        setAppStep('parsed');
+        console.log('[DocMaster] 보고서 생성 완료 (맞춤 질문 건너뛰기)');
+      } catch (err) {
+        console.error('[DocMaster] 맞춤 건너뛰기 후 HTML 생성 오류', err);
+        alert(t.parsedPanel.generating + '\n' + (err instanceof Error ? err.message : String(err)));
+      } finally {
+        setLoadingContext(null);
+      }
+    })();
+  };
+
+  /** 맞춤 질문 팝업: 반영하여 계속 → 선택 반영 정리 md 후 HTML 생성 */
+  const handleCustomizationSubmit = (answers: Record<string, string>) => {
+    const d = customizationDraft;
+    if (!d) return;
+    setCustomizationDraft(null);
+    setLoadingContext({ phase: 'generating', fileName: parsedFileName || '' });
+    (async () => {
+      try {
+        const { markdown: finalMd, usage: uRefine } = await refineMarkdownWithAnswersClient(
+          d.refinedMd,
+          answers,
+          d.reportType,
+          d.questions,
+          d.llmProvider,
+          d.llmKey
+        );
+        const usage1 =
+          d.usage1 && uRefine
+            ? {
+                inputTokens: d.usage1.inputTokens + uRefine.inputTokens,
+                outputTokens: d.usage1.outputTokens + uRefine.outputTokens,
+                totalTokens: d.usage1.totalTokens + uRefine.totalTokens,
+                estimatedCostUsd: (d.usage1.estimatedCostUsd ?? 0) + (uRefine.estimatedCostUsd ?? 0),
+              }
+            : uRefine ?? d.usage1;
+        const { html, usage: usage2 } = await generateHtmlFromMarkdownClient(
+          finalMd,
+          d.llmProvider,
+          d.llmKey,
+          d.templateId,
+          d.reportType,
+          d.apiBaseUrl,
+          d.highQuality
+        );
+        setReportHtml(html);
+        setReportMarkdown(finalMd);
+        setReportTypeForMarkdown(d.reportType);
+        setReportUsage(
+          usage1 && usage2
+            ? {
+                inputTokens: usage1.inputTokens + usage2.inputTokens,
+                outputTokens: usage1.outputTokens + usage2.outputTokens,
+                totalTokens: usage1.totalTokens + usage2.totalTokens,
+                estimatedCostUsd: (usage1.estimatedCostUsd ?? 0) + (usage2.estimatedCostUsd ?? 0),
+              }
+            : usage2 ?? usage1 ?? null
+        );
+        setAppStep('parsed');
+        console.log('[DocMaster] 보고서 생성 완료 (맞춤 선택 반영)');
+      } catch (err) {
+        console.error('[DocMaster] 맞춤 반영 후 HTML 생성 오류', err);
+        alert(t.parsedPanel.generating + '\n' + (err instanceof Error ? err.message : String(err)));
+      } finally {
+        setLoadingContext(null);
+      }
+    })();
   };
 
   // ─── Step 리셋: 새 파일 분석 ──────────────────────────────────────────────
@@ -219,9 +478,21 @@ function App() {
     setParsedFileId(null);
     setReportHtml(null);
     setReportMarkdown(null);
+    setReportTypeForMarkdown(null);
     setReportUsage(null);
     setShowReportPopup(false);
+    setCustomizationDraft(null);
     setAppStep('idle');
+  };
+
+  /** 경영진용↔실무용 선택 변경 시 정리 md·보고서 무효화 → 다음 보고서 생성 시 해당 유형으로 다시 생성 */
+  const handleReportTypeChange = () => {
+    setReportHtml(null);
+    setReportMarkdown(null);
+    setReportTypeForMarkdown(null);
+    setReportUsage(null);
+    setShowReportPopup(false);
+    setCustomizationDraft(null);
   };
 
   const isProcessing = appStep === 'parsing';
@@ -372,7 +643,7 @@ function App() {
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-all"
               >
                 <Upload size={14} />
-                새 파일
+                {t.parsedPanel.newFile}
               </button>
             )}
 
@@ -391,7 +662,14 @@ function App() {
               className={`group flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-full transition-all duration-300 shadow-sm border ${hasKeys ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 hover:shadow' : 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-200'}`}
             >
               <Settings size={16} className={`transition-transform duration-500 ${!hasKeys && 'animate-spin-slow'}`} />
-              {hasKeys ? t.config : t.configureApi}
+              {hasKeys ? t.keyConfigLabel : t.configureApi}
+            </button>
+            <button
+              onClick={() => setIsTemplateAdminOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
+            >
+              <FileCode size={16} className="text-slate-500" />
+              {t.templateManageLabel}
             </button>
           </div>
         </header>
@@ -467,10 +745,14 @@ function App() {
                   bestPracticeId={selectedBestPractice}
                   onGenerateReport={handleGenerateReport}
                   onReset={handleReset}
-                  reportReady={!!reportHtml}
+                  onReportTypeChange={handleReportTypeChange}
+                  reportReady={!!reportHtml || !!reportMarkdown}
                   reportMarkdown={reportMarkdown}
                   reportUsage={reportUsage}
-                  onViewReport={() => setShowReportPopup(true)}
+                  onViewReport={() => {
+                    if (reportHtml) setShowReportPopup(true);
+                    else if (reportMarkdown) alert(t.parsedPanel.htmlFailedRefinedMdAvailable);
+                  }}
                 />
                 {/* 1단계 추출 결과를 기준으로 생성할 문서 타입 선택 — Step2 영역 아래 */}
                 <div className="mt-10">
@@ -487,6 +769,15 @@ function App() {
         </div>
       </main>
 
+      {/* 로딩 팝업 — 자료 추출 / 보고서 생성 중 순환 메시지 + 이용 팁 */}
+      {loadingContext && (
+        <LoadingPopup
+          phase={loadingContext.phase}
+          fileName={loadingContext.fileName}
+          lang={lang}
+        />
+      )}
+
       {/* Settings Modal */}
       {isSettingsOpen && (
         <SettingsModal
@@ -496,6 +787,24 @@ function App() {
             setIsSettingsOpen(false);
           }}
           lang={lang}
+        />
+      )}
+
+      {/* Template Admin Modal (HTML 템플릿 편집) */}
+      <TemplateAdminModal
+        open={isTemplateAdminOpen}
+        onClose={() => setIsTemplateAdminOpen(false)}
+        apiBaseUrl={API_BASE_URL}
+        lang={lang}
+      />
+
+      {/* 맞춤 질문 모달: 정리 md 초안 후 강조·구체화 선택 */}
+      {customizationDraft && (
+        <CustomizationQuestionModal
+          questions={customizationDraft.questions}
+          lang={lang}
+          onSkip={handleCustomizationSkip}
+          onSubmit={handleCustomizationSubmit}
         />
       )}
 

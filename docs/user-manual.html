@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DocMaster AI 사용자 메뉴얼</title>
+  <style>
+    :root { --accent: #4f46e5; --accent-light: #eef2ff; --text: #1e293b; --text-muted: #64748b; --border: #e2e8f0; --bg: #f8fafc; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; color: var(--text); line-height: 1.65; margin: 0; background: var(--bg); }
+    .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+    h1 { font-size: 1.75rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; margin-top: 0; }
+    h2 { font-size: 1.35rem; color: var(--text); margin-top: 2.5rem; margin-bottom: 0.75rem; }
+    h3 { font-size: 1.1rem; color: var(--text); margin-top: 1.5rem; margin-bottom: 0.5rem; }
+    p { margin: 0.5rem 0 1rem; }
+    ul, ol { margin: 0.5rem 0 1rem; padding-left: 1.5rem; }
+    li { margin: 0.25rem 0; }
+    .toc { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; margin: 1.5rem 0; }
+    .toc h2 { margin-top: 0; font-size: 1.15rem; }
+    .toc ul { list-style: none; padding-left: 0; margin: 0.5rem 0 0; }
+    .toc li { margin: 0.35rem 0; }
+    .toc a { color: var(--accent); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    .screenshot { width: 100%; max-width: 720px; aspect-ratio: 16/10; background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.95rem; margin: 1rem 0; }
+    .screenshot-caption { font-size: 0.85rem; color: var(--text-muted); margin-top: -0.5rem; margin-bottom: 1rem; }
+    .screenshot.replace { border: 2px dashed var(--accent); background: var(--accent-light); color: var(--accent); }
+    .note { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 0.75rem 1rem; margin: 1rem 0; font-size: 0.9rem; }
+    .tip { background: #d1fae5; border: 1px solid #10b981; border-radius: 8px; padding: 0.75rem 1rem; margin: 1rem 0; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+    th { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+    .btn-desc { font-family: inherit; font-size: 0.9rem; }
+    code { background: #f1f5f9; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.88em; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+    @media print { .container { max-width: 100%; } .screenshot.replace { border-style: solid; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>DocMaster AI 사용자 메뉴얼</h1>
+    <p><strong>대상:</strong> 기획자·사용자 | <strong>목적:</strong> 서비스 사용 방법, 화면별 동작, 이용 팁</p>
+
+    <div class="note">
+      <strong>스크린샷 안내</strong><br>
+      본 메뉴얼의 스크린샷은 플레이스홀더입니다. 실제 사용 시에는 각 화면을 캡처한 이미지로 교체해 주세요. 교체 시 해당 영역의 <code>&lt;div class="screenshot"&gt;</code>를 <code>&lt;img src="images/파일명.png" alt="설명" style="width:100%; max-width:720px; border-radius:12px;"&gt;</code> 형태로 바꾸거나, 플레이스홀더 div 안에 <code>&lt;img&gt;</code>를 넣어 주세요. 이미지 폴더 예: <code>docs/user-manual/images/</code>
+    </div>
+
+    <nav class="toc" aria-label="목차">
+      <h2>목차</h2>
+      <ul>
+        <li><a href="#overview">1. 서비스 개요 및 전체 플로우</a></li>
+        <li><a href="#prep">2. 시작 전 준비 (Key 설정)</a></li>
+        <li><a href="#step1">3. Step 1 — 파일 업로드 &amp; 추출</a></li>
+        <li><a href="#step2">4. Step 2 — 문서 유형 선택 &amp; 보고서 생성</a></li>
+        <li><a href="#customization">4.1 맞춤 질문 (의도 반영)</a></li>
+        <li><a href="#viewer">5. 보고서 보기 &amp; 다운로드</a></li>
+        <li><a href="#prompt">6. 프롬프트 편집</a></li>
+        <li><a href="#template">7. 템플릿 관리</a></li>
+        <li><a href="#tips">8. 이용 팁</a></li>
+        <li><a href="#policy">9. 정책 요약</a></li>
+      </ul>
+    </nav>
+
+    <!-- ========== 1. 서비스 개요 ========== -->
+    <h2 id="overview">1. 서비스 개요 및 전체 플로우</h2>
+    <p>DocMaster AI는 <strong>PDF·PPTX 파일</strong>을 업로드하면, 문서에서 텍스트와 표를 추출하고, 선택한 유형에 맞춰 <strong>보고서·개발 피처 목록·테스트 케이스</strong> 등을 자동 생성하는 서비스입니다.</p>
+    <h3>전체 사용 흐름</h3>
+    <ol>
+      <li><strong>시작 전:</strong> 우측 상단 [Key 설정]에서 LLM API 키를 등록합니다.</li>
+      <li><strong>Step 1:</strong> 메인 화면에서 PDF 또는 PPTX 파일을 업로드합니다. 서버가 문서를 추출해 마크다운으로 변환합니다.</li>
+      <li><strong>Step 2:</strong> 만들고 싶은 문서 유형(기획서 기반 보고서 / 개발 피처 / 테스트 케이스)을 선택하고, 보고서 유형이라면 경영진용·실무용과 HTML 형식을 고른 뒤 [보고서 생성] 또는 [생성]을 누릅니다.</li>
+      <li><strong>맞춤 질문 (선택):</strong> 기획서 기반 보고서를 처음 생성할 때, 정리 초안이 나온 뒤 **의도 반영용 질문**이 2~3개 뜨는 경우가 있습니다. 원하는 선택지를 고른 뒤 [반영하여 계속]을 누르면 해당 포인트를 강조·구체화한 최종 보고서가 만들어집니다. [건너뛰기]를 누르면 초안 그대로 HTML이 생성됩니다.</li>
+      <li><strong>결과 확인:</strong> 생성이 끝나면 보고서 보기 팝업에서 HTML을 확인하고, HTML·정리 md 다운로드가 가능합니다.</li>
+    </ol>
+
+    <div class="screenshot replace" id="img-flow">[ 스크린샷: 전체 플로우 요약 다이어그램 (선택) ]</div>
+    <p class="screenshot-caption">그림 1. 전체 플로우 요약 (선택 사항)</p>
+
+    <hr>
+
+    <!-- ========== 2. 시작 전 준비 ========== -->
+    <h2 id="prep">2. 시작 전 준비 (Key 설정)</h2>
+    <p>보고서 생성은 외부 LLM(OpenAI, Anthropic, Google 등) API를 사용합니다. 반드시 <strong>우측 상단 [Key 설정]</strong>에서 API 키를 입력하고, 사용할 LLM을 선택해야 합니다.</p>
+
+    <div class="screenshot replace" id="img-settings">[ 스크린샷: 메인 화면 우측 상단 — Key 설정 버튼 위치 ]</div>
+    <p class="screenshot-caption">그림 2. 메인 화면 상단 (Key 설정 버튼)</p>
+
+    <div class="screenshot replace" id="img-settings-modal">[ 스크린샷: 설정(Key 설정) 모달 전체 — API 키 탭 ]</div>
+    <p class="screenshot-caption">그림 3. 설정 모달 — API 키 화면</p>
+
+    <h3>설정 화면 정책</h3>
+    <ul>
+      <li>API 키와 설정은 <strong>브라우저 Local Storage</strong>에만 저장됩니다. 서버에 설정을 보내지 않습니다.</li>
+      <li>보고서 생성 시에는 <strong>추출된 문서 내용(텍스트·표 등)</strong>만 선택한 LLM 제공업체 API로 전송됩니다. 원본 PDF/PPTX 파일은 추출 후 즉시 삭제되며 서버에 남기지 않습니다.</li>
+    </ul>
+    <h3>버튼·항목별 동작</h3>
+    <table>
+      <thead><tr><th>항목/버튼</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td><strong>리포트 생성을 위한 LLM 선택</strong></td><td>드롭다운. OpenAI(GPT-5.2/5.1), Anthropic(Claude 4.6 Sonnet / 4.5 Opus), Google(Gemini 3.1 Pro / 2.5 Pro) 중 선택. 선택한 제공업체와 동일한 API 키를 사용해야 합니다.</td></tr>
+        <tr><td><strong>API Key (필수)</strong></td><td>선택한 LLM 제공업체에서 발급한 API 키를 입력합니다. 저장 시 Local Storage에만 저장됩니다.</td></tr>
+        <tr><td><strong>연결 확인</strong></td><td>현재 선택한 LLM과 입력한 키로 API 호출을 시도해, 정상 동작 여부를 확인합니다.</td></tr>
+        <tr><td><strong>저장 및 적용</strong></td><td>LLM 선택 값과 API 키를 저장하고 모달을 닫습니다. 이후 보고서 생성 시 이 설정이 사용됩니다.</td></tr>
+        <tr><td><strong>✕ (닫기)</strong></td><td>설정을 저장하지 않고 모달만 닫습니다.</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <!-- ========== 3. Step 1 ========== -->
+    <h2 id="step1">3. Step 1 — 파일 업로드 &amp; 추출</h2>
+    <p>메인 화면 중앙의 <strong>업로드 영역</strong>에 PDF 또는 PPTX 파일을 드래그 앤 드롭하거나, 영역을 클릭해 파일을 선택합니다.</p>
+
+    <div class="screenshot replace" id="img-upload">[ 스크린샷: 메인 화면 — 업로드 영역 (클릭 또는 드래그 앤 드롭) ]</div>
+    <p class="screenshot-caption">그림 4. Step 1 — 업로드 영역</p>
+
+    <h3>정책</h3>
+    <ul>
+      <li><strong>지원 형식:</strong> PDF, PPTX만 지원합니다. 그 외 파일은 업로드 시 안내 메시지가 나옵니다.</li>
+      <li><strong>처리 방식:</strong> 파일은 파싱 백엔드(로컬 또는 배포 서버)로 전송되어 텍스트·표가 추출됩니다. 추출이 끝나면 원본 파일은 즉시 삭제되며 서버에 보관하지 않습니다.</li>
+    </ul>
+    <h3>버튼·동작</h3>
+    <table>
+      <thead><tr><th>동작</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td><strong>영역 클릭</strong></td><td>파일 선택 대화상자가 열립니다. PDF/PPTX를 선택하면 즉시 업로드·파싱이 시작됩니다.</td></tr>
+        <tr><td><strong>드래그 앤 드롭</strong></td><td>파일을 업로드 영역 위에 놓으면 동일하게 업로드·파싱이 시작됩니다.</td></tr>
+        <tr><td><strong>API 키 미등록 시</strong></td><td>Key 설정이 되어 있지 않으면 업로드 시도 시 토스트로 "API 키 등록이 필요합니다" 안내가 나오고, [Key 설정 열기] 또는 [도움말 보기]를 선택할 수 있습니다.</td></tr>
+      </tbody>
+    </table>
+    <p>파싱이 진행되는 동안 "파이썬 서버가 문서를 추출 중입니다..." 메시지와 로딩 표시가 나타납니다. 완료되면 Step 2 영역이 나타납니다.</p>
+
+    <hr>
+
+    <!-- ========== 4. Step 2 ========== -->
+    <h2 id="step2">4. Step 2 — 문서 유형 선택 &amp; 보고서 생성</h2>
+    <p>추출이 끝나면 <strong>Step 1 완료</strong> 배너와 <strong>추출 콘텐츠 미리보기</strong>, 그 아래 <strong>「어떤 문서를 만들까요?」</strong> 카드 3종이 표시됩니다.</p>
+
+    <div class="screenshot replace" id="img-cards">[ 스크린샷: Step 2 — 기획서 기반 보고서 / 개발 피처 목록 / 테스트 케이스 카드 3종 ]</div>
+    <p class="screenshot-caption">그림 5. 문서 유형 선택 카드</p>
+
+    <h3>문서 유형(카드)별 동작</h3>
+    <table>
+      <thead><tr><th>카드</th><th>용도</th><th>생성 버튼</th></tr></thead>
+      <tbody>
+        <tr><td><strong>기획서 기반 보고서</strong></td><td>기획서·제안서 PDF/PPTX를 경영진용 또는 실무용 보고서로 정리합니다. 경영진용은 핵심 리스크·결론 중심, 실무용은 담당자·일정·액션 중심입니다.</td><td>아래에서 경영진/실무, HTML 형식, 고품질 선택 후 [보고서 생성]</td></tr>
+        <tr><td><strong>개발 피처 목록</strong></td><td>카테고리별 개발 피처·요건 목록을 생성합니다.</td><td>[개발 피처 생성]</td></tr>
+        <tr><td><strong>테스트 케이스</strong></td><td>영역별·단계별·예상 결과가 있는 QA용 테스트 케이스 문서를 생성합니다.</td><td>[테스트 케이스 생성]</td></tr>
+      </tbody>
+    </table>
+
+    <p>각 카드의 <strong>[프롬프트 편집]</strong> 버튼을 누르면 해당 유형의 프롬프트(역할·규칙·Step)를 편집할 수 있습니다. 저장한 내용은 다음 생성부터 적용됩니다.</p>
+
+    <div class="screenshot replace" id="img-step2-panel">[ 스크린샷: Step 1 완료 배너 + 미리보기 + 경영진/실무 탭 + HTML 형식 + 고품질 + 보고서 생성 버튼 ]</div>
+    <p class="screenshot-caption">그림 6. Step 2 — 보고서 옵션 및 생성 버튼</p>
+
+    <h3>보고서 유형 선택 시 항목·버튼</h3>
+    <table>
+      <thead><tr><th>항목/버튼</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td><strong>✅ Step 1 완료 — 문서 추출 결과</strong></td><td>파싱된 파일명과 줄 수가 표시됩니다.</td></tr>
+        <tr><td><strong>🔄 다른 파일 분석</strong></td><td>클릭 시 업로드 화면으로 돌아가 새 파일을 선택할 수 있습니다. 현재 추출 결과와 보고서는 초기화됩니다.</td></tr>
+        <tr><td><strong>추출 콘텐츠 미리보기</strong></td><td>추출된 마크다운 앞부분(최대 80줄)을 보여줍니다. 더 많은 줄은 "다운로드 후 확인"으로 안내됩니다.</td></tr>
+        <tr><td><strong>📥 추출 결과 다운로드 (.md)</strong></td><td>추출된 전체 마크다운을 <code>파일명_extracted.md</code>로 브라우저에서 즉시 다운로드합니다. 서버 요청 없음.</td></tr>
+        <tr><td><strong>보고용 (경영진·리더십 대상)</strong> / <strong>실무 공유용 (팀 협업·액션 플랜)</strong></td><td>탭 형태. 선택한 쪽이 보고서 생성 시 사용되는 프롬프트와 출력 스타일을 결정합니다. 경영진용은 핵심 리스크·결론 중심, 실무용은 담당·일정·액션 중심입니다.</td></tr>
+        <tr><td><strong>HTML 형식</strong></td><td>드롭다운. 기본(Tailwind), 기획/제안서 스타일, 프레젠테이션 슬라이드(16:9), 위키 스타일, 프리포맷, PPTX(슬라이드) 중 선택. PPTX 선택 시 별도 파이프라인으로 슬라이드 파일이 다운로드됩니다.</td></tr>
+        <tr><td><strong>고품질</strong> 체크박스</td><td>선택 시 N회차(최대 3회) 검토로 품질을 높입니다. LLM 호출이 2~3회 추가되어 비용과 시간이 늘어납니다.</td></tr>
+        <tr><td><strong>📄 보고서 생성</strong></td><td>선택한 옵션(경영진/실무, HTML 형식, 고품질)으로 정리 md 생성 후, <strong>맞춤 질문</strong>이 생성되면 의도 반영 단계(아래 4.1)를 거친 뒤 HTML을 생성합니다. 질문이 없거나 건너뛰면 곧바로 HTML이 생성됩니다. 생성 중에는 로딩 팝업이 표시됩니다.</td></tr>
+      </tbody>
+    </table>
+
+    <p>생성이 완료되면 "보고서 생성이 완료되었습니다." 메시지와 함께 토큰 사용량(및 예상 비용)이 표시되고, <strong>[만들어진 보고서 보기]</strong>, <strong>정리 내용 (.md) 다운로드</strong> 버튼이 나타납니다.</p>
+
+    <!-- ========== 4.1 맞춤 질문 ========== -->
+    <h2 id="customization">4.1 맞춤 질문 (의도 반영)</h2>
+    <p><strong>기획서 기반 보고서</strong>를 선택하고 [보고서 생성]을 누르면, 정리 초안이 만들어진 뒤 <strong>「맞춤 질문」</strong> 팝업이 뜨는 경우가 있습니다. 초안 내용을 바탕으로 "어떤 포인트를 강조·구체화할지" 2~3개의 다지선다 질문이 표시됩니다.</p>
+
+    <div class="screenshot replace" id="img-customization">[ 스크린샷: 맞춤 질문 모달 — 질문 2~3개, 선택지, 건너뛰기 / 반영하여 계속 버튼 ]</div>
+    <p class="screenshot-caption">그림 6-1. 맞춤 질문 모달</p>
+
+    <h3>정책</h3>
+    <ul>
+      <li>질문은 <strong>정리 초안에 실제로 등장하는 섹션·항목</strong>을 기준으로 생성됩니다. LLM이 초안을 분석해 JSON 형태로 질문을 만들며, 파싱이 실패하거나 질문이 0개면 이 단계는 건너뛰고 곧바로 HTML이 생성됩니다.</li>
+      <li>같은 파일로 <strong>HTML 형식만 바꿔서 재생성</strong>할 때는 정리 md를 다시 만들지 않으므로 맞춤 질문 단계도 다시 뜨지 않습니다. 새로 정리 md를 만들 때만(처음 생성하거나, 경영진↔실무를 바꾼 뒤 생성할 때) 질문이 나올 수 있습니다.</li>
+    </ul>
+    <h3>버튼별 동작</h3>
+    <table>
+      <thead><tr><th>버튼/동작</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td><strong>각 질문의 선택지</strong></td><td>라디오 버튼 형태. 원하는 선택지를 하나씩 고르면 "반영하여 계속" 버튼이 활성화됩니다.</td></tr>
+        <tr><td><strong>건너뛰기</strong></td><td>질문에 답하지 않고 초안 그대로 최종 HTML을 생성합니다. 로딩 후 보고서 보기로 넘어갑니다.</td></tr>
+        <tr><td><strong>반영하여 계속</strong></td><td>모든 질문에 답한 뒤에만 클릭 가능합니다. 선택한 항목을 반영해 정리 md를 한 번 더 수정한 뒤, 그 결과로 HTML을 생성합니다. 의도에 맞게 강조·구체화된 보고서가 만들어집니다.</td></tr>
+        <tr><td><strong>✕ (닫기)</strong></td><td>건너뛰기와 동일하게 동작합니다. 초안 그대로 HTML이 생성됩니다.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="tip">
+      <strong>이용 팁:</strong> 보고서를 "의도에 맞게 더 잘" 만들고 싶다면, 맞춤 질문이 뜰 때 꼭 선택지를 골라 [반영하여 계속]을 누르세요. 리스크·결론·대안 비교 등 강조하고 싶은 부분을 선택하면 해당 섹션이 더 두드러지게 반영됩니다.
+    </div>
+
+    <hr>
+
+    <!-- ========== 5. 보고서 보기 ========== -->
+    <h2 id="viewer">5. 보고서 보기 &amp; 다운로드</h2>
+    <p>[만들어진 보고서 보기]를 누르면 생성된 HTML 보고서가 팝업(또는 전체 화면)으로 표시됩니다.</p>
+
+    <div class="screenshot replace" id="img-viewer">[ 스크린샷: 보고서 뷰어 — 상단 헤더 + HTML 내용 영역 ]</div>
+    <p class="screenshot-caption">그림 7. 보고서 뷰어</p>
+
+    <h3>버튼별 동작</h3>
+    <table>
+      <thead><tr><th>버튼</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td><strong>HTML 다운로드</strong></td><td>현재 보고서 HTML을 <code>DocMaster_Report.html</code> 파일로 다운로드합니다.</td></tr>
+        <tr><td><strong>닫기 (✕)</strong> / <strong>새 문서 분석하기</strong></td><td>뷰어를 닫고 이전 화면(Step 2)으로 돌아갑니다. 보고서는 유지되며 다시 [만들어진 보고서 보기]로 볼 수 있습니다.</td></tr>
+      </tbody>
+    </table>
+
+    <p>Step 2 패널에서 <strong>정리 내용 (.md) 다운로드</strong>를 누르면, LLM이 생성한 정리 마크다운이 <code>파일명_report.md</code>로 다운로드됩니다.</p>
+
+    <hr>
+
+    <!-- ========== 6. 프롬프트 편집 ========== -->
+    <h2 id="prompt">6. 프롬프트 편집</h2>
+    <p>「어떤 문서를 만들까요?」 카드에서 [프롬프트 편집]을 누르면, 해당 유형(기획서 기반 보고서 / 개발 피처 / 테스트 케이스)의 프롬프트를 편집하는 모달이 열립니다.</p>
+
+    <div class="screenshot replace" id="img-prompt-modal">[ 스크린샷: 프롬프트 편집 모달 — 경영진용/실무용 탭, 편집 가능 영역, HTML 출력 시 자동 적용(수정 불가) 영역 ]</div>
+    <p class="screenshot-caption">그림 8. 프롬프트 편집 모달 (보고서 유형)</p>
+
+    <h3>정책</h3>
+    <ul>
+      <li><strong>편집 가능:</strong> 역할·목표, 입력 데이터 규칙, 핵심 규칙, 필수 출력 항목, 실행 Step 등이 텍스트 영역에 표시되며 수정할 수 있습니다. 저장 시 Local Storage에 저장되어 다음 생성부터 적용됩니다.</li>
+      <li><strong>수정 불가:</strong> "HTML 출력 시 자동 적용 (수정 불가)" 영역은 고정 규칙입니다. HTML을 어떤 형식으로 낼지(코드 블록 하나만 출력, 변수 매핑 등)를 정의하며, 화면에서는 보기만 가능합니다.</li>
+    </ul>
+    <h3>버튼별 동작</h3>
+    <table>
+      <thead><tr><th>항목/버튼</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td><strong>경영진용</strong> / <strong>실무용</strong> 탭</td><td>보고서 유형일 때만 표시됩니다. 탭을 전환하면 해당 용도의 프롬프트(편집 가능 + 자동 적용)가 표시됩니다.</td></tr>
+        <tr><td><strong>기본값으로 초기화</strong></td><td>현재 탭의 편집 가능 프롬프트를 서비스 기본값으로 되돌립니다. 저장하기 전까지는 반영되지 않습니다.</td></tr>
+        <tr><td><strong>취소</strong></td><td>변경 사항을 저장하지 않고 모달을 닫습니다.</td></tr>
+        <tr><td><strong>저장 및 적용</strong></td><td>편집한 내용을 Local Storage에 저장하고 모달을 닫습니다. 다음 보고서/피처/테스트 케이스 생성부터 적용됩니다.</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <!-- ========== 7. 템플릿 관리 ========== -->
+    <h2 id="template">7. 템플릿 관리</h2>
+    <p>우측 상단 [템플릿 관리]를 누르면 HTML 템플릿(기본, 기획/제안서 스타일 등)을 확인·관리할 수 있습니다. 경영진 보고서(기본)는 HTML 변수(예: {{summary}}, {{purpose_background}})만 채워서 출력되며, 다른 포맷은 스타일 가이드 기반으로 LLM이 HTML 전체를 생성합니다.</p>
+
+    <div class="screenshot replace" id="img-template">[ 스크린샷: 템플릿 관리 모달 ]</div>
+    <p class="screenshot-caption">그림 9. 템플릿 관리</p>
+
+    <p>자세한 내용은 <code>docs/07-html-template-handling-ko.md</code>를 참고하세요.</p>
+
+    <hr>
+
+    <!-- ========== 8. 이용 팁 ========== -->
+    <h2 id="tips">8. 이용 팁</h2>
+    <ul>
+      <li><strong>처음 사용 시:</strong> 반드시 [Key 설정]에서 사용할 LLM과 API 키를 먼저 등록하고 [연결 확인]으로 동작을 확인한 뒤 업로드하세요.</li>
+      <li><strong>경영진용 vs 실무용:</strong> 경영진용은 1페이지 요약·결론·액션 중심으로 짧게, 실무용은 담당·일정·조건을 풍부하게 작성합니다. 기획서가 길면 실무용을 선택하는 것이 유리할 수 있습니다.</li>
+      <li><strong>고품질 옵션:</strong> 중요한 보고서는 "고품질"을 켜면 N회차 검토로 품질이 올라가지만, 생성 시간과 비용이 늘어납니다.</li>
+      <li><strong>추출 결과 보관:</strong> [추출 결과 다운로드 (.md)]로 원본 추출본을 보관해 두면, 나중에 같은 원본으로 다른 유형(경영진/실무/개발 피처 등)을 다시 만들 때 참고할 수 있습니다.</li>
+      <li><strong>프롬프트 커스터마이즈:</strong> 팀에서 쓰는 용어나 필수 섹션을 맞추려면 [프롬프트 편집]에서 "필수 출력 항목" 등을 수정해 두면 됩니다.</li>
+      <li><strong>맞춤 질문 활용:</strong> 기획서 기반 보고서 생성 시 "맞춤 질문" 팝업이 뜨면, 강조하고 싶은 포인트를 선택한 뒤 [반영하여 계속]을 누르면 의도에 맞게 보강된 보고서가 만들어집니다. 질문이 안 뜨는 경우는 LLM이 질문을 만들지 못한 경우이며, 그때는 초안 그대로 HTML이 생성됩니다.</li>
+      <li><strong>오류 시:</strong> "503" 또는 과부하 메시지가 나오면 잠시 후 재시도하거나, [설정]에서 다른 LLM(예: OpenAI ↔ Claude)으로 바꿔 보세요.</li>
+    </ul>
+
+    <hr>
+
+    <!-- ========== 9. 정책 요약 ========== -->
+    <h2 id="policy">9. 정책 요약</h2>
+    <table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>파일 보관</td><td>업로드한 PDF/PPTX는 추출 완료 후 즉시 삭제되며, 서버에 원본을 보관하지 않습니다.</td></tr>
+        <tr><td>API 전송</td><td>보고서 생성 시 추출된 텍스트·표 등만 선택한 LLM 제공업체(OpenAI, Anthropic, Google 등) API로 전송됩니다. 원본 파일 자체는 전송되지 않습니다.</td></tr>
+        <tr><td>설정 저장</td><td>API 키, LLM 선택, 프롬프트 편집 내용은 브라우저 Local Storage에만 저장됩니다. 서버에 설정을 보내지 않습니다.</td></tr>
+        <tr><td>다운로드</td><td>추출 결과(.md), 정리 내용(.md), HTML 보고서는 브라우저에서 생성·다운로드되며, 서버에 보고서 파일을 저장하지 않습니다.</td></tr>
+      </tbody>
+    </table>
+
+    <p style="margin-top:2rem; font-size:0.9rem; color:var(--text-muted);">— DocMaster AI 사용자 메뉴얼 (HTML) —</p>
+  </div>
+</body>
+</html>

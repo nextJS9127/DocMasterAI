@@ -65,7 +65,7 @@
   - 기본 프롬프트: **경영진용** 또는 **실무용** 중 하나를 기본값으로 설정(예: 경영진용).
   - HTML 형식: **default** 또는 **phase1** 등 기획서에 맞는 템플릿을 기본 선택.
 - **프롬프트**: 기존 `DEFAULT_PROMPT_EXECUTIVE_EDITABLE` / `DEFAULT_PROMPT_TEAM_EDITABLE` 유지. (이미 문서화됨.)
-- **결과 포맷**: 기존과 동일 — ````markdown` 블록 + ````html` 블록, 템플릿 변수 `{{summary}}`, `{{chart_description}}`, `{{options_risk}}`, `{{action_item}}` 등 채워진 HTML.
+- **결과 포맷**: 2단계 파이프라인(1단계 정리 md → 2단계 HTML). 기본 템플릿은 슬라이드형·변수 1:1 매핑 — `{{summary}}`, `{{purpose_background}}`, `{{key_changes}}`, `{{process_flow}}`, `{{recommendations}}`, `{{risks}}`, `{{action_item}}`. 사용자가 프롬프트에서 변수·섹션을 추가하면 동일 스타일로 슬라이드/섹션 확장 가능(동적 포맷).
 
 **추가 조정 가능**:  
 - “기획서 기반 보고서” 선택 시 설정에 “경영진용 기본” 또는 “실무용 기본” 옵션을 두고, 그에 따라 초기 `reportType`과 `templateId`만 바꿔 주면 됨.

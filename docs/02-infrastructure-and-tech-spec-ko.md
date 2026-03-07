@@ -92,7 +92,11 @@ docmaster-web/
 │   │   └── OnboardingManualModal.tsx  # 도움말/온보딩 모달
 │   └── lib/
 │       ├── translations.ts  # 한/영 UI 문자열
-│       └── llmClient.ts      # LLM 연동, 프롬프트, 템플릿, generateReportClient
+│       ├── llmClient.ts      # LLM 연동(호출·응답 파싱), 도메인 설정은 prompts/* 참조
+│       └── prompts/          # 도메인별 프롬프트·템플릿·getReportGenerationConfig
+│           ├── executiveTeam.ts  # 경영진/실무, getTemplateForApi
+│           ├── features.ts
+│           └── testcases.ts
 ├── index.html
 ├── vite.config.ts
 ├── tsconfig.json

@@ -92,7 +92,11 @@ docmaster-web/
 │   │   └── OnboardingManualModal.tsx  # Help/onboarding modal
 │   └── lib/
 │       ├── translations.ts  # KO/EN UI strings
-│       └── llmClient.ts      # LLM integration, prompts, templates, generateReportClient
+│       ├── llmClient.ts      # LLM integration (calls, response parsing); domain config in prompts/*
+│       └── prompts/          # Domain prompts, templates, getReportGenerationConfig
+│           ├── executiveTeam.ts  # Executive/Team, getTemplateForApi
+│           ├── features.ts
+│           └── testcases.ts
 ├── index.html
 ├── vite.config.ts
 ├── tsconfig.json

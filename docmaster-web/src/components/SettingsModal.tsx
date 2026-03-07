@@ -15,10 +15,10 @@ function getStored(key: string, fallback: string): string {
 }
 
 export function SettingsModal({ onClose, onSave, lang }: SettingsModalProps) {
-  const VALID_LLM_SELECTIONS = ['openai-gpt52', 'openai-gpt51', 'openai', 'claude', 'claude-opus', 'gemini3', 'gemini-25-pro'] as const;
+  const VALID_LLM_SELECTIONS = ['openai-gpt52', 'openai-gpt51', 'claude', 'claude-opus', 'gemini3', 'gemini-25-pro'] as const;
   const [llmProvider, setLlmProvider] = useState(() => {
-    const v = getStored('docmaster_llmProvider', 'openai');
-    return VALID_LLM_SELECTIONS.includes(v as (typeof VALID_LLM_SELECTIONS)[number]) ? v : 'openai';
+    const v = getStored('docmaster_llmProvider', 'openai-gpt51');
+    return VALID_LLM_SELECTIONS.includes(v as (typeof VALID_LLM_SELECTIONS)[number]) ? v : 'openai-gpt51';
   });
   const [llmKey, setLlmKey] = useState(() => getStored('docmaster_llmKey', ''));
 
@@ -74,7 +74,6 @@ export function SettingsModal({ onClose, onSave, lang }: SettingsModalProps) {
                 >
                   <option value="openai-gpt52">OpenAI (GPT-5.2, Thinking)</option>
                   <option value="openai-gpt51">OpenAI (GPT-5.1, Thinking)</option>
-                  <option value="openai">OpenAI (GPT-4o)</option>
                   <option value="claude">Anthropic (Claude 4.6 Sonnet)</option>
                   <option value="claude-opus">Anthropic (Claude 4.5 Opus)</option>
                   <option value="gemini3">Google (Gemini 3.1 Pro, Thinking)</option>
@@ -113,7 +112,7 @@ export function SettingsModal({ onClose, onSave, lang }: SettingsModalProps) {
                   className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-300 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <Wifi size={16} />
-                  {verifyStatus.status === 'loading' ? (lang === 'ko' ? '확인 중…' : 'Checking…') : t.testConnection}
+                  {verifyStatus.status === 'loading' ? t.checking : t.testConnection}
                 </button>
                 {verifyStatus.status === 'success' && (
                   <p className="text-sm text-emerald-600 font-medium flex items-center gap-1.5">

@@ -21,8 +21,10 @@ interface ParsedResultPanelProps {
     parsedFileId: string | null;
     lang: Language;
     bestPracticeId: BestPracticeId;
-    onGenerateReport: (reportType: ReportType, templateId: HtmlTemplateId) => Promise<void>;
+    onGenerateReport: (reportType: ReportType, templateId: HtmlTemplateId, highQuality?: boolean) => Promise<void>;
     onReset: () => void;
+    /** 경영진용↔실무용 선택 변경 시 호출. 정리 md를 비우고 다음 생성 시 해당 유형으로 다시 만들도록 함 */
+    onReportTypeChange?: () => void;
     reportReady?: boolean;
     reportMarkdown?: string | null;
     reportUsage?: ReportUsage | null;
@@ -37,6 +39,7 @@ export function ParsedResultPanel({
     bestPracticeId,
     onGenerateReport,
     onReset,
+    onReportTypeChange,
     reportReady = false,
     reportMarkdown = null,
     reportUsage = null,
@@ -44,6 +47,7 @@ export function ParsedResultPanel({
 }: ParsedResultPanelProps) {
     const [reportType, setReportType] = useState<'executive' | 'team'>('executive');
     const [htmlTemplateId, setHtmlTemplateId] = useState<HtmlTemplateId>('default');
+    const [highQuality, setHighQuality] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const t = translations[lang];
     const tp = t.parsedPanel;
@@ -53,11 +57,11 @@ export function ParsedResultPanel({
         setIsGenerating(true);
         try {
             if (bestPracticeId === 'features') {
-                await onGenerateReport('features', 'wiki');
+                await onGenerateReport('features', 'features');
             } else if (bestPracticeId === 'testcases') {
-                await onGenerateReport('testcases', 'wiki');
+                await onGenerateReport('testcases', 'testcases');
             } else {
-                await onGenerateReport(reportType, htmlTemplateId);
+                await onGenerateReport(reportType, htmlTemplateId, highQuality);
             }
         } finally {
             setIsGenerating(false);
@@ -210,13 +214,19 @@ export function ParsedResultPanel({
                                 <option value="presentation2">{tp.htmlFormatPresentation}</option>
                                 <option value="wiki">{tp.htmlFormatWiki}</option>
                                 <option value="preformat">{tp.htmlFormatPreformat}</option>
+                                <option value="pptx">{tp.htmlFormatPptx}</option>
                             </select>
                         </div>
 
                         {/* 형식 선택 카드 */}
                         <div className="flex flex-col sm:flex-row gap-3 mb-6">
                             <button
-                                onClick={() => setReportType('executive')}
+                                onClick={() => {
+                                    if (reportType !== 'executive') {
+                                        setReportType('executive');
+                                        onReportTypeChange?.();
+                                    }
+                                }}
                                 disabled={isGenerating}
                                 className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all text-left ${reportType === 'executive'
                                         ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
@@ -233,7 +243,12 @@ export function ParsedResultPanel({
                             </button>
 
                             <button
-                                onClick={() => setReportType('team')}
+                                onClick={() => {
+                                    if (reportType !== 'team') {
+                                        setReportType('team');
+                                        onReportTypeChange?.();
+                                    }
+                                }}
                                 disabled={isGenerating}
                                 className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all text-left ${reportType === 'team'
                                         ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
@@ -249,6 +264,21 @@ export function ParsedResultPanel({
                                 </div>
                             </button>
                         </div>
+
+                        {/* 고품질 체크박스 */}
+                        <label className="flex items-start gap-3 mb-6 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={highQuality}
+                                onChange={(e) => setHighQuality(e.target.checked)}
+                                disabled={isGenerating}
+                                className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-60"
+                            />
+                            <span className="text-sm text-slate-700 group-hover:text-slate-900">
+                                <span className="font-semibold">{tp.highQualityLabel}</span>
+                                <span className="block text-xs text-slate-500 mt-0.5">{tp.highQualityHint}</span>
+                            </span>
+                        </label>
                     </>
                 )}
 
