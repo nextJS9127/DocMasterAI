@@ -140,7 +140,7 @@ export function ParsedResultPanel({
                         </button>
                     </div>
                 </div>
-                <pre className="p-5 text-xs text-slate-600 leading-relaxed overflow-y-auto max-h-72 font-mono whitespace-pre-wrap break-words">
+                <pre className="p-5 text-xs text-slate-600 leading-relaxed overflow-y-auto max-h-[12.6rem] font-mono whitespace-pre-wrap break-words">
                     {previewLines}
                     {isTruncated && (
                         <span className="block mt-2 text-slate-400 italic">

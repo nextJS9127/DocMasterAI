@@ -86,6 +86,13 @@ const LLM_SELECTION_MAP: Record<string, { provider: 'openai' | 'claude' | 'gemin
     'gemini-25-pro': { provider: 'gemini', modelId: 'gemini-2.5-pro' },
 };
 
+/** HTML 생성 단계 전용: 한 단계 더 빠른 모델 고정 → 체감/실제 속도 개선 */
+const HTML_STEP_FAST_MODEL: Record<'openai' | 'claude' | 'gemini', string> = {
+    openai: 'gpt-4o-mini',
+    claude: 'claude-3-5-haiku-20241022',
+    gemini: 'gemini-2.0-flash',
+};
+
 /** API 키 입력란 라벨/링크용 — 선택값에서 provider 이름만 반환 */
 export function getProviderForApiKey(selection: string): 'openai' | 'claude' | 'gemini' {
     const mapped = LLM_SELECTION_MAP[selection];
@@ -321,18 +328,30 @@ function extractLongTextFromObject(obj: unknown, minLength = 200): string {
     return '';
 }
 
-/** 단일 LLM 호출 (시스템 + 유저) → fullBody + usage. highQuality 시 OpenAI=reasoning_effort high, Gemini=thinking 강화, Claude=동일 */
+/** 경과 시간(ms)을 "Xm Ys" 형식 문자열로 반환 (로그용) */
+function formatElapsedMinSec(ms: number): string {
+    const totalSec = Math.round(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+/** 단일 LLM 호출 (시스템 + 유저) → fullBody + usage. highQuality 시 OpenAI=reasoning_effort high, Gemini=thinking 강화, Claude=동일.
+ *  options.useFastModel: HTML 단계 전용으로 한 단계 빠른 모델 사용.
+ *  options.stream: 스트리밍으로 수신 후 누적 반환(체감 속도 개선). */
 async function callLlm(
     systemPrompt: string,
     userPrompt: string,
     selection: string,
     apiKey: string,
     maxTokens = 4096,
-    highQuality = false
+    highQuality = false,
+    options?: { useFastModel?: boolean; stream?: boolean }
 ): Promise<{ fullBody: string; usage?: ReportUsage }> {
     const mapped = LLM_SELECTION_MAP[selection];
     const provider = mapped ? mapped.provider : (selection === 'claude' || selection === 'gemini' ? selection : 'openai');
-    const modelId = mapped ? mapped.modelId : (provider === 'openai' ? 'gpt-4o' : provider === 'claude' ? 'claude-sonnet-4-6' : 'gemini-2.5-pro');
+    let modelId = mapped ? mapped.modelId : (provider === 'openai' ? 'gpt-4o' : provider === 'claude' ? 'claude-sonnet-4-6' : 'gemini-2.5-pro');
+    if (options?.useFastModel) modelId = HTML_STEP_FAST_MODEL[provider] ?? modelId;
     let fullBody = '';
     let usage: ReportUsage | undefined;
     let didRetry = false;
@@ -341,7 +360,87 @@ async function callLlm(
     const systemChars = typeof systemPrompt === 'string' ? systemPrompt.length : 0;
     const userChars = typeof userPrompt === 'string' ? userPrompt.length : 0;
     const inputChars = systemChars + userChars;
-    console.log('[DocMaster] LLM 요청 시작', { provider, modelId, highQuality, inputChars, systemChars, userChars });
+    console.log('[DocMaster] LLM 요청 시작', { provider, modelId, highQuality, inputChars, systemChars, userChars, stream: options?.stream, useFastModel: options?.useFastModel });
+
+    if (options?.stream) {
+        // HTML 단계 등: 스트리밍으로 수신 후 누적 반환 → 체감 속도 개선
+        if (provider === 'openai') {
+            const openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+            const stream = await openai.chat.completions.create({
+                model: modelId,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt },
+                ],
+                max_completion_tokens: maxTokens,
+                temperature: 0.3,
+                stream: true,
+            });
+            for await (const chunk of stream) {
+                const delta = chunk.choices[0]?.delta?.content;
+                if (typeof delta === 'string') fullBody += delta;
+                const u = (chunk as { usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } }).usage;
+                if (u) {
+                    usage = {
+                        inputTokens: u.prompt_tokens ?? 0,
+                        outputTokens: u.completion_tokens ?? 0,
+                        totalTokens: u.total_tokens ?? 0,
+                        estimatedCostUsd: estimateCostUsd(selection, u.prompt_tokens ?? 0, u.completion_tokens ?? 0),
+                    };
+                }
+            }
+        } else if (provider === 'claude') {
+            const anthropic = new Anthropic({ apiKey });
+            const stream = anthropic.messages.stream({
+                model: modelId,
+                max_tokens: maxTokens,
+                system: systemPrompt,
+                messages: [{ role: 'user', content: userPrompt }],
+                temperature: 0.3,
+            });
+            const finalMessage = await stream.finalMessage();
+            const contentBlock = finalMessage.content[0];
+            if (contentBlock?.type === 'text') fullBody = contentBlock.text;
+            const u = finalMessage.usage;
+            if (u) {
+                usage = {
+                    inputTokens: u.input_tokens ?? 0,
+                    outputTokens: u.output_tokens ?? 0,
+                    totalTokens: (u.input_tokens ?? 0) + (u.output_tokens ?? 0),
+                    estimatedCostUsd: estimateCostUsd(selection, u.input_tokens ?? 0, u.output_tokens ?? 0),
+                };
+            }
+        } else if (provider === 'gemini') {
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: modelId, systemInstruction: systemPrompt });
+            const result = await model.generateContentStream(userPrompt);
+            const parts: string[] = [];
+            for await (const chunk of result.stream) {
+                const text = chunk.text();
+                if (text) parts.push(text);
+            }
+            fullBody = parts.join('');
+            const response = await result.response;
+            const um = response.usageMetadata;
+            if (um) {
+                const inputT = um.promptTokenCount ?? 0;
+                const outputT = um.candidatesTokenCount ?? 0;
+                usage = {
+                    inputTokens: inputT,
+                    outputTokens: outputT,
+                    totalTokens: um.totalTokenCount ?? inputT + outputT,
+                    estimatedCostUsd: estimateCostUsd(selection, inputT, outputT),
+                };
+            }
+        } else {
+            throw new Error(`Unsupported LLM provider: ${provider}`);
+        }
+        const outLen = typeof fullBody === 'string' ? fullBody.length : 0;
+        const elapsedMinSec = formatElapsedMinSec(Date.now() - startMs);
+        console.log('[DocMaster] LLM 스트리밍 응답 완료', { provider, modelId, bodyLength: outLen, elapsed: elapsedMinSec, ...(usage && { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens }) });
+        return { fullBody, usage };
+    }
+
     if (provider === 'openai') {
         const openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
         const isReasoningModel = modelId.startsWith('gpt-5.1') || modelId.startsWith('gpt-5.2');
@@ -493,12 +592,12 @@ async function callLlm(
         throw new Error(`Unsupported LLM provider: ${provider}`);
     }
     const outLen = typeof fullBody === 'string' ? fullBody.length : 0;
-    const elapsedMs = Date.now() - startMs;
+    const elapsedMinSec = formatElapsedMinSec(Date.now() - startMs);
     console.log('[DocMaster] LLM 응답 완료', {
         provider,
         modelId,
         bodyLength: outLen,
-        elapsedMs,
+        elapsed: elapsedMinSec,
         didRetry,
         ...(didRetry && { note: '재시도로 동일 입력 2회 전송 → 실제 입력 토큰은 약 2배 소비' }),
         ...(usage && {
@@ -868,7 +967,7 @@ Reflect the **category list and feature table headers, column count, and order**
 [정리된 보고 내용]이 아래에 제공된다. 이 단계에서는 위 문서 템플릿과 스타일 규칙에 맞춰 **\`\`\`html ... \`\`\` 블록 하나만** 출력하라. \`\`\`markdown\`\`\` 블록은 출력하지 마라.${sourceOfTruthInstruction}${tableColumnInstruction}`;
         const systemPrompt = htmlFixed + htmlOnlySuffix;
         const userPrompt = `[정리된 보고 내용]\n\n${refinedMarkdown}`;
-        const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, REFINED_MD_MAX_TOKENS, false);
+        const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, REFINED_MD_MAX_TOKENS, false, { stream: true });
         const htmlMatch = fullBody.match(/```html\s*([\s\S]*?)```/i);
         const html = htmlMatch ? htmlMatch[1].trim() : (fullBody.startsWith('```html') ? fullBody.replace(/^```html\s*/i, '').replace(/\s*```$/, '').trim() : fullBody.trim());
         return { html, usage };
@@ -901,7 +1000,7 @@ Reflect the **category list and feature table headers, column count, and order**
     const fullCoverageReminder = '\n\n**중요:** 위 [정리된 보고 내용]에 있는 모든 섹션·항목을 누락 없이 HTML에 반영할 것. 일부만 발췌하지 말 것.';
     const userPrompt = `[정리된 보고 내용]\n${refinedMarkdown}\n\n${label}\n${templateContent}\n\n${templateGuidance}${fullCoverageReminder}`.trim();
 
-    const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, REFINED_MD_MAX_TOKENS, highQuality);
+    const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, REFINED_MD_MAX_TOKENS, highQuality, { stream: true });
     const htmlMatch = fullBody.match(/```html\s*([\s\S]*?)```/);
     const html = htmlMatch ? htmlMatch[1].trim() : (fullBody.startsWith('```html') ? fullBody.replace(/^```html\s*/, '').replace(/\s*```$/, '').trim() : fullBody.trim());
     return { html, usage };
