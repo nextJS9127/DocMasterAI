@@ -25,8 +25,7 @@ export const DEFAULT_PROMPT_FEATURES_EDITABLE = `# Role & Objective
 4. **의존성·참고**: 카테고리/피쳐 간 선행 조건·참고 문서가 있으면 간단히 명시.
 
 # 출력 형식
-1) 정리된 내용(마크다운): \`\`\`markdown ... \`\`\` 블록에 위 구조대로 작성.
-2) 완성 HTML: \`\`\`html ... \`\`\` 블록에, 아래 "개발 피처 문서 템플릿" 구조와 \`<style>\` 블록을 반드시 사용하라. \`<main class="fe-body">\` 와 \`</main>\` 사이에만 본문을 채운다. (1) \`<div class="fe-overview">\` 문서 개요, (2) \`<div class="fe-category-list-wrap">\` 카테고리 목록 표, (3) 카테고리별 \`<section class="fe-category">\` — \`<h2 class="fe-category-title">\` + \`<div class="fe-table-wrap"><table class="fe-table">\` 피쳐 표. 표 헤더: 피쳐 ID, 제목, 설명, 우선순위, 수용 기준. 수용 기준이 여러 항목이면 \`<ul class="fe-bullets">\` 와 \`<li>\` 를 사용하라.`;
+정리된 내용을 **마크다운**으로만 출력한다. 반드시 \`\`\`markdown ... \`\`\` 블록 하나만 사용하라.`;
 
 export const DEFAULT_PROMPT_FEATURES_EDITABLE_EN = `# Role & Objective
 You are a senior tech lead and product planner. Analyze [Source Data] and produce a **category-based development features (and requirements) document** that dev teams can use as a task list.
@@ -46,8 +45,7 @@ You are a senior tech lead and product planner. Analyze [Source Data] and produc
 4. **Dependencies & references**: Preconditions or references between categories/features if any.
 
 # Output format
-1) Summary (markdown): In a \`\`\`markdown ... \`\`\` block.
-2) Complete HTML: In a \`\`\`html ... \`\`\` block. Use the "Development Features document template" (structure and \`<style>\` block) from the HTML rules. Fill only between \`<main class="fe-body">\` and \`</main>\`: (1) \`<div class="fe-overview">\` for document overview, (2) \`<div class="fe-category-list-wrap">\` for category list table, (3) for each category \`<section class="fe-category">\` with \`<h2 class="fe-category-title">\` and \`<div class="fe-table-wrap"><table class="fe-table">\`. Table headers: Feature ID, Title, Description, Priority, Acceptance criteria. For multiple criteria use \`<ul class="fe-bullets">\` with \`<li>\`.`;
+Output the summary as **markdown only**. Use exactly one \`\`\`markdown ... \`\`\` block.`;
 
 export const HTML_FIXED_FEATURES = `
 # HTML 출력 규칙 (엄격히 준수)

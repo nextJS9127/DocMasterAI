@@ -265,8 +265,8 @@ export function ParsedResultPanel({
                             </button>
                         </div>
 
-                        {/* 고품질 체크박스 */}
-                        <label className="flex items-start gap-3 mb-6 cursor-pointer group">
+                        {/* 고품질 체크박스 — 기능 유지, 화면상 숨김 */}
+                        <label className="hidden flex items-start gap-3 mb-6 cursor-pointer group">
                             <input
                                 type="checkbox"
                                 checked={highQuality}

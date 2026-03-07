@@ -28,8 +28,7 @@ export const DEFAULT_PROMPT_TESTCASES_EDITABLE = `# Role & Objective
 4. **부록**: 용어 정리, 참고 화면/문서 (선택).
 
 # 출력 형식
-1) 정리된 내용(마크다운): \`\`\`markdown ... \`\`\` 블록에 위 구조대로 작성.
-2) 완성 HTML: \`\`\`html ... \`\`\` 블록에, 표(<table>) 중심의 테스트 케이스 HTML. 영역은 <h2>, 케이스는 표로 표시.`;
+정리된 내용을 **마크다운**으로만 출력한다. 반드시 \`\`\`markdown ... \`\`\` 블록 하나만 사용하라.`;
 
 export const DEFAULT_PROMPT_TESTCASES_EDITABLE_EN = `# Role & Objective
 You are a senior QA lead. Analyze [Source Data] and produce **test case documentation** that QA can execute as-is. Each case must include **area (module/feature)**, **step**, **action**, and **expected result**.
@@ -51,8 +50,7 @@ You are a senior QA lead. Analyze [Source Data] and produce **test case document
 4. **Appendix**: Glossary, references (optional).
 
 # Output format
-1) Summary (markdown): \`\`\`markdown ... \`\`\` block.
-2) Complete HTML: \`\`\`html ... \`\`\` block. Use the TC document template (structure and \`<style>\` block) provided in the HTML rules. Fill only between \`<main class="tc-body">\` and \`</main>\`: (1) \`.tc-overview\` for document overview, (2) \`.tc-summary-wrap\` for summary table, (3) for each area \`<section class="tc-area">\` with \`<h2 class="tc-area-title">\` and \`<div class="tc-table-wrap"><table class="tc-table">\`. In the Step column use \`<ol class="tc-steps">\` with \`<li>\` per step; for multiple items use \`<ul class="tc-bullets">\` with \`<li>\`.`;
+Output the summary as **markdown only**. Use exactly one \`\`\`markdown ... \`\`\` block.`;
 
 export const HTML_FIXED_TESTCASES = `
 # HTML 출력 규칙 (엄격히 준수)

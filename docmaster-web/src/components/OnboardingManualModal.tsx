@@ -110,6 +110,9 @@ export function OnboardingManualModal({ onClose, lang }: OnboardingManualModalPr
               {t.guideTitle}
             </h4>
             <p className="text-sm text-slate-600 leading-relaxed mb-3">{t.guideIntro}</p>
+            <div className="mb-4 rounded-xl border-2 border-emerald-200 bg-emerald-50/90 px-4 py-3">
+              <p className="text-sm font-semibold text-emerald-800 leading-relaxed">{t.guideFormatTip}</p>
+            </div>
             <p className="text-sm text-slate-600 leading-relaxed mb-2">{t.guideMdTip}</p>
             <ul className="space-y-2 pl-1">
               {[t.guideItem1, t.guideItem2, t.guideItem3].map((text, i) => (
