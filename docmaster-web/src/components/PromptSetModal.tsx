@@ -15,8 +15,6 @@ import {
   DEFAULT_PROMPT_EXECUTIVE_EDITABLE_EN,
   DEFAULT_PROMPT_TEAM_EDITABLE,
   DEFAULT_PROMPT_TEAM_EDITABLE_EN,
-  HTML_FIXED_EXECUTIVE,
-  HTML_FIXED_TEAM,
 } from '../lib/llmClient';
 import type { Language } from '../lib/translations';
 import type { BestPracticeId } from './BestPracticeCards';
@@ -133,10 +131,6 @@ export function PromptSetModal({ outcomeId, lang, onClose }: PromptSetModalProps
                     rows={12}
                     className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs leading-relaxed min-h-[240px] resize-y"
                   />
-                  <p className="text-xs text-slate-500 mt-1">{t.promptHtmlFixedLabelExecutive}</p>
-                  <pre className="text-xs text-slate-500 bg-slate-100 border border-slate-200 rounded-md p-3 overflow-x-auto max-h-28 overflow-y-auto whitespace-pre-wrap">
-                    {HTML_FIXED_EXECUTIVE.trim()}
-                  </pre>
                 </div>
               )}
               {reportTab === 'team' && (
@@ -154,10 +148,6 @@ export function PromptSetModal({ outcomeId, lang, onClose }: PromptSetModalProps
                     rows={12}
                     className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs leading-relaxed min-h-[240px] resize-y"
                   />
-                  <p className="text-xs text-slate-500 mt-1">{t.promptHtmlFixedLabelTeam}</p>
-                  <pre className="text-xs text-slate-500 bg-slate-100 border border-slate-200 rounded-md p-3 overflow-x-auto max-h-28 overflow-y-auto whitespace-pre-wrap">
-                    {HTML_FIXED_TEAM.trim()}
-                  </pre>
                 </div>
               )}
             </div>

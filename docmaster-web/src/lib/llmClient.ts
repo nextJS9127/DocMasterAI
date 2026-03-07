@@ -17,15 +17,12 @@ import {
     DEFAULT_PROMPT_EXECUTIVE_EDITABLE_EN,
     DEFAULT_PROMPT_TEAM_EDITABLE,
     DEFAULT_PROMPT_TEAM_EDITABLE_EN,
-    HTML_FIXED_EXECUTIVE,
-    HTML_FIXED_TEAM,
     DEFAULT_PROMPT_EXECUTIVE,
     DEFAULT_PROMPT_TEAM,
     getDefaultExecutiveEditable,
     getDefaultTeamEditable,
     SECTION_KEYS,
     getSectionContentSystemPrompt,
-    getDefaultHtmlTemplateSkeleton,
     QUALITY_RUBRIC_AND_NO_LOSS,
     MD_OUTPUT_INSTRUCTION_NORMAL,
     MD_OUTPUT_INSTRUCTION_DRAFT_ONLY,
@@ -53,8 +50,6 @@ export {
     DEFAULT_PROMPT_EXECUTIVE_EDITABLE_EN,
     DEFAULT_PROMPT_TEAM_EDITABLE,
     DEFAULT_PROMPT_TEAM_EDITABLE_EN,
-    HTML_FIXED_EXECUTIVE,
-    HTML_FIXED_TEAM,
     getDefaultExecutiveEditable,
     getDefaultTeamEditable,
     getDefaultFeaturesEditable,
@@ -164,7 +159,7 @@ function estimateCostUsd(selectionOrProvider: string, inputTokens: number, outpu
 }
 
 /** API에서 HTML 템플릿 조회. 실패 시 기본 ID는 getTemplateForApi, testcases/features는 getXxxTemplateContent() 폴백. */
-const BUILTIN_TEMPLATE_IDS: HtmlTemplateId[] = ['default', 'phase1', 'presentation2', 'wiki', 'preformat'];
+const BUILTIN_TEMPLATE_IDS: HtmlTemplateId[] = ['phase1', 'presentation2', 'wiki', 'preformat'];
 function parseTemplateResponse(text: string): string {
     const trimmed = text.trim();
     if (trimmed.length === 0) return '';
@@ -247,10 +242,60 @@ export async function listTemplatesFromApi(apiBaseUrl: string): Promise<{ id: st
     return (data as { templates?: { id: string; exists: boolean }[] }).templates ?? [];
 }
 
-// ─── 2단계 파이프라인: 정리 md 품질 (루브릭 + 최대 3회차) ─────────────────────────────────────
+/** 추가 템플릿 용도(보고서/개발/테스트) — localStorage 키 접두사. 템플릿 추가 시 선택한 용도 저장 */
+export const TEMPLATE_CATEGORY_STORAGE_KEY = 'docmaster_templateCategory_';
+export const TEMPLATE_TITLE_STORAGE_KEY = 'docmaster_templateTitle_';
+export const BUILTIN_REPORT_TEMPLATE_IDS: string[] = ['phase1', 'presentation2', 'wiki', 'preformat', 'pptx'];
+export const BUILTIN_DEV_TEMPLATE_IDS: string[] = ['features'];
+export const BUILTIN_TC_TEMPLATE_IDS: string[] = ['testcases'];
+
+export type TemplateCategory = 'report' | 'dev' | 'testcases';
+
+/** 새 템플릿 ID 자동 생성 (구분자_타임스탬프_랜덤) */
+export function generateTemplateId(category: TemplateCategory): string {
+  const prefix = category === 'report' ? 'report' : category === 'dev' ? 'dev' : 'test';
+  const t = Date.now();
+  const r = Math.random().toString(36).slice(2, 8);
+  return `${prefix}_${t}_${r}`;
+}
+
+export function getTemplateCategoryFromStorage(id: string): TemplateCategory | '' {
+    if (typeof localStorage === 'undefined') return '';
+    const raw = localStorage.getItem(TEMPLATE_CATEGORY_STORAGE_KEY + id);
+    return (raw === 'report' || raw === 'dev' || raw === 'testcases') ? raw : '';
+}
+
+/** 목록에서 용도별 템플릿 ID 배열 반환 (보고서/개발/테스트 콤보용) */
+const ALL_BUILTIN_IDS_SET = new Set([
+    ...BUILTIN_REPORT_TEMPLATE_IDS,
+    ...BUILTIN_DEV_TEMPLATE_IDS,
+    ...BUILTIN_TC_TEMPLATE_IDS,
+]);
+
+export function getTemplatesForCategory(
+    allItems: { id: string }[],
+    category: TemplateCategory
+): string[] {
+    const builtin = category === 'report' ? BUILTIN_REPORT_TEMPLATE_IDS
+        : category === 'dev' ? BUILTIN_DEV_TEMPLATE_IDS
+        : BUILTIN_TC_TEMPLATE_IDS;
+    const custom = allItems
+        .filter((x) => !ALL_BUILTIN_IDS_SET.has(x.id))
+        .filter((x) => getTemplateCategoryFromStorage(x.id) === category)
+        .map((x) => x.id);
+    return [...builtin, ...custom];
+}
+
+// ─── 2단계 파이프라인: 정리 md 품질 (루브릭 + 최대 2회차) ─────────────────────────────────────
 
 /** 정리 md 생성 시 출력 토큰 상한 (긴 원천 반영 시 긴 출력 필요) */
 const REFINED_MD_MAX_TOKENS = 16384;
+
+/** 2단계(md→HTML) 전용 출력 토큰 상한. 기본은 8192로 속도·비용 절감. */
+const HTML_STEP_MAX_TOKENS = 8192;
+/** 2단계 긴 문서용: 정리 md가 이 길이(문자) 초과면 출력 상한을 이 값으로 사용 (줄이기 전과 동일). */
+const HTML_STEP_MAX_TOKENS_LARGE = 16384;
+const REFINED_MD_CHARS_THRESHOLD = 12000;
 
 /** C방식: default HTML 생성 시 섹션별 내용만 추출 — 출력 짧게 해서 속도 개선 */
 const HTML_SECTION_CONTENT_MAX_TOKENS = 4096;
@@ -610,6 +655,49 @@ async function callLlm(
     return { fullBody, usage };
 }
 
+/** 실험적: 추출된 md 일부를 이용해 "공감·진행 중" 로딩 메시지 3~5개 생성. 실패 시 빈 배열 반환. */
+const LOADING_MESSAGES_EXCERPT_LEN = 1200;
+const LOADING_MESSAGES_MAX_TOKENS = 120;
+
+export async function getReportLoadingMessagesFromRawMd(
+    rawMarkdown: string,
+    selection: string,
+    apiKey: string
+): Promise<string[]> {
+    const excerpt = (rawMarkdown || '').trim().slice(0, LOADING_MESSAGES_EXCERPT_LEN);
+    if (!excerpt) return [];
+
+    const systemPrompt = `당신은 보고서 생성 로딩 화면에 쓸 짧은 문구만 출력합니다.
+다음 규칙을 지켜 주세요:
+- 3~5개의 짧은 문장을 출력하고, 한 줄에 하나씩만 씁니다.
+- 각 문장은 사용자에게 "AI가 이 내용을 이해하고 정리하고 있다"는 느낌의 공감·진행 메시지입니다. 예: "이 내용을 정리하고 있어요.", "주요 포인트를 골라보고 있어요.", "이런 부분이 고민되시는군요."
+- 문서 제목·주제를 간단히 반영해도 됩니다. 예: "『OOO』 내용을 다듬고 있어요."
+- 번호나 기호 없이, 문장만 한 줄씩 출력합니다. 각 줄은 40자 이내로 짧게.
+- 그 외 설명이나 접두어는 출력하지 마세요.`;
+
+    const userPrompt = `[문서 일부]\n\n${excerpt}`;
+
+    try {
+        const { fullBody } = await callLlm(
+            systemPrompt,
+            userPrompt,
+            selection,
+            apiKey,
+            LOADING_MESSAGES_MAX_TOKENS,
+            false,
+            { useFastModel: true }
+        );
+        const lines = (fullBody || '')
+            .split(/\n/)
+            .map((s) => s.trim().replace(/^[-*·]\s*/, ''))
+            .filter((s) => s.length > 0 && s.length <= 60);
+        return lines.slice(0, 5);
+    } catch (e) {
+        if (import.meta.env?.DEV) console.warn('[DocMaster] 로딩 메시지 생성 실패', e);
+        return [];
+    }
+}
+
 /** 정리 md가 HTML 템플릿 변수 목록({{summary}} 등)만 있는지 여부. 이런 블록은 최종 정리 md가 아니므로 제외한다. */
 function isOnlyVariablePlaceholders(md: string): boolean {
     const trimmed = (md || '').trim();
@@ -967,19 +1055,10 @@ Reflect the **category list and feature table headers, column count, and order**
 [정리된 보고 내용]이 아래에 제공된다. 이 단계에서는 위 문서 템플릿과 스타일 규칙에 맞춰 **\`\`\`html ... \`\`\` 블록 하나만** 출력하라. \`\`\`markdown\`\`\` 블록은 출력하지 마라.${sourceOfTruthInstruction}${tableColumnInstruction}`;
         const systemPrompt = htmlFixed + htmlOnlySuffix;
         const userPrompt = `[정리된 보고 내용]\n\n${refinedMarkdown}`;
-        const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, REFINED_MD_MAX_TOKENS, false, { stream: true });
+        const htmlStepMaxTokens = refinedMarkdown.length > REFINED_MD_CHARS_THRESHOLD ? HTML_STEP_MAX_TOKENS_LARGE : HTML_STEP_MAX_TOKENS;
+        const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, htmlStepMaxTokens, false, { stream: true, useFastModel: true });
         const htmlMatch = fullBody.match(/```html\s*([\s\S]*?)```/i);
         const html = htmlMatch ? htmlMatch[1].trim() : (fullBody.startsWith('```html') ? fullBody.replace(/^```html\s*/i, '').replace(/\s*```$/, '').trim() : fullBody.trim());
-        return { html, usage };
-    }
-
-    // C방식: default 템플릿 + 경영진/실무 → 섹션별 내용만 LLM 추출 후 고정 스켈레톤에 주입 (빠름)
-    if (templateId === 'default' && (reportType === 'executive' || reportType === 'team')) {
-        const { sections, usage } = await generateSectionContentFromRefinedMdClient(refinedMarkdown, selection, apiKey, reportType);
-        let html = getDefaultHtmlTemplateSkeleton(reportType);
-        for (const key of SECTION_KEYS) {
-            html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), sections[key] || '<p class="text-slate-500">—</p>');
-        }
         return { html, usage };
     }
 
@@ -987,20 +1066,24 @@ Reflect the **category list and feature table headers, column count, and order**
     const teamEditable = localStorage.getItem('docmaster_promptTeamEditable') || getDefaultTeamEditable(promptLang);
     const editablePart = reportType === 'team' ? teamEditable : executiveEditable;
 
-    const templateContent = apiBaseUrl ? await fetchTemplateFromApi(apiBaseUrl, templateId) : getTemplateForApi(templateId);
+    const templateContent = apiBaseUrl ? await fetchTemplateFromApi(apiBaseUrl, templateId) : getTemplateForApi(templateId, promptLang);
     const label = '[HTML 형식 스타일 가이드]';
     const templateGuidance = templateId === 'preformat' ? '' : TEMPLATE_INSTRUCTION_STYLE_GUIDE;
 
-    const htmlFixed = reportType === 'team' ? HTML_FIXED_TEAM : HTML_FIXED_EXECUTIVE;
+    const htmlOutputRule = `
+# HTML 출력 규칙
+- 최종 출력은 \`\`\`html ... \`\`\` 블록 하나만. 마크다운 블록 금지.
+- [HTML 형식 스타일 가이드]에 정의된 구조·변수에 [정리된 보고 내용]을 누락 없이 채울 것.`;
     const dynamicInstruction = `
 위에서 사용자가 정의한 필수 출력 항목·변수 매핑을 기준으로 한다. [정리된 보고 내용]에 그 항목들이 모두 포함되어 있으면, 주어진 [HTML 형식 스타일 가이드]에 맞춰 완성 HTML을 출력하라.
 사용자가 프롬프트에서 추가한 변수·섹션이 기본 템플릿에 없으면, 동일한 스타일(report-slide, report-card, check-list 등)과 슬라이드 네비게이션 구조를 유지하면서 슬라이드 또는 섹션을 추가하여 반영하라. 정리된 내용을 누락 없이 HTML에 담을 것.
 **정리된 내용이 기본 슬라이드에 다 담기 어렵거나 분량이 많으면:** 추가 슬라이드를 동일한 report-slide 구조로 넣어 모든 내용을 담을 것. 내용을 잘라 내지 말 것.`;
-    const systemPrompt = `${editablePart}\n\n${htmlFixed}\n\n${HTML_FROM_MD_FULL_COVERAGE}\n\n${dynamicInstruction}\n\n아래 [정리된 보고 내용]을 위 규칙과 사용자 정의 항목에 맞춰 **모든 항목이 빠짐없이** 반영된 완성 HTML로 출력하라. 마크다운 코드블록 없이 \`\`\`html ... \`\`\` 블록 하나만 출력하라.`;
+    const systemPrompt = `${editablePart}\n\n${htmlOutputRule}\n\n${HTML_FROM_MD_FULL_COVERAGE}\n\n${dynamicInstruction}\n\n아래 [정리된 보고 내용]을 위 규칙과 사용자 정의 항목에 맞춰 **모든 항목이 빠짐없이** 반영된 완성 HTML로 출력하라. 마크다운 코드블록 없이 \`\`\`html ... \`\`\` 블록 하나만 출력하라.`;
     const fullCoverageReminder = '\n\n**중요:** 위 [정리된 보고 내용]에 있는 모든 섹션·항목을 누락 없이 HTML에 반영할 것. 일부만 발췌하지 말 것.';
     const userPrompt = `[정리된 보고 내용]\n${refinedMarkdown}\n\n${label}\n${templateContent}\n\n${templateGuidance}${fullCoverageReminder}`.trim();
 
-    const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, REFINED_MD_MAX_TOKENS, highQuality, { stream: true });
+    const htmlStepMaxTokens = refinedMarkdown.length > REFINED_MD_CHARS_THRESHOLD ? HTML_STEP_MAX_TOKENS_LARGE : HTML_STEP_MAX_TOKENS;
+    const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, htmlStepMaxTokens, highQuality, { stream: true, useFastModel: true });
     const htmlMatch = fullBody.match(/```html\s*([\s\S]*?)```/);
     const html = htmlMatch ? htmlMatch[1].trim() : (fullBody.startsWith('```html') ? fullBody.replace(/^```html\s*/, '').replace(/\s*```$/, '').trim() : fullBody.trim());
     return { html, usage };
@@ -1011,7 +1094,7 @@ export async function generateReportClient(
     selection: string,
     apiKey: string,
     reportType: ReportType = 'executive',
-    templateId: HtmlTemplateId = 'default',
+    templateId: HtmlTemplateId = 'presentation2',
     apiBaseUrl?: string
 ): Promise<GenerateReportResult> {
     const mapped = LLM_SELECTION_MAP[selection];
@@ -1049,7 +1132,7 @@ export async function generateReportClient(
         const teamEditable = localStorage.getItem('docmaster_promptTeamEditable') || getDefaultTeamEditable(promptLang);
         const config = getExecutiveReportGenerationConfig(reportType, templateId, promptLang, executiveEditable, teamEditable);
         SYSTEM_PROMPT = config.SYSTEM_PROMPT;
-        const templateContent = apiBaseUrl ? await fetchTemplateFromApi(apiBaseUrl, templateId) : getTemplateForApi(templateId);
+        const templateContent = apiBaseUrl ? await fetchTemplateFromApi(apiBaseUrl, templateId) : getTemplateForApi(templateId, promptLang);
         userPrompt = config.buildUserPrompt(markdownData, templateContent);
     }
 

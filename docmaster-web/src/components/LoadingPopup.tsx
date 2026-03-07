@@ -13,15 +13,19 @@ const EQUALIZER_DURATION_S = 1.4;
 export interface LoadingPopupProps {
     phase: LoadingPhase;
     fileName?: string;
+    subPhase?: 'refining' | 'writing';
+    liveMessages?: string[];
     lang: Language;
 }
 
-export function LoadingPopup({ phase, fileName = '', lang }: LoadingPopupProps) {
+export function LoadingPopup({ phase, fileName = '', subPhase: _subPhase, liveMessages, lang }: LoadingPopupProps) {
     const t = translations[lang];
     const statusMessages =
         phase === 'parsing'
             ? t.loadingPopup.parsingStatus
-            : t.loadingPopup.generatingStatus;
+            : (liveMessages && liveMessages.length > 0)
+              ? liveMessages
+              : t.loadingPopup.generatingStatus;
     const tips = t.loadingPopup.tips;
 
     const [statusIndex, setStatusIndex] = useState(0);
@@ -29,7 +33,7 @@ export function LoadingPopup({ phase, fileName = '', lang }: LoadingPopupProps) 
 
     useEffect(() => {
         const statusTimer = setInterval(() => {
-            setStatusIndex((i) => (i + 1) % statusMessages.length);
+            setStatusIndex((i) => (statusMessages.length > 0 ? (i + 1) % statusMessages.length : 0));
         }, STATUS_INTERVAL_MS);
         return () => clearInterval(statusTimer);
     }, [statusMessages.length]);
@@ -43,7 +47,8 @@ export function LoadingPopup({ phase, fileName = '', lang }: LoadingPopupProps) 
     }, [tips.length]);
 
     const statusText = (() => {
-        const raw = statusMessages[statusIndex];
+        const safeIndex = statusMessages.length > 0 ? statusIndex % statusMessages.length : 0;
+        const raw = statusMessages[safeIndex] ?? statusMessages[0] ?? '';
         return raw.replace(/\{fileName\}/g, fileName || '');
     })();
 
@@ -53,7 +58,7 @@ export function LoadingPopup({ phase, fileName = '', lang }: LoadingPopupProps) 
             aria-live="polite"
             aria-busy="true"
         >
-            <div className="mx-4 w-full max-w-[22.4rem] rounded-2xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
+            <div className="mx-4 w-full max-w-[26rem] rounded-2xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
                 <div className="flex flex-col items-center text-center">
                     {/* 이퀄라이저 바 — 14개 막대가 한 주기(1.4s)에 균등 분포되어 유동적 웨이브 */}
                     <div

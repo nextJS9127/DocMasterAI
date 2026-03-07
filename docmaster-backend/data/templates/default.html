@@ -1,0 +1,52 @@
+아래 [디자인 스펙]과 [원시 데이터]를 바탕으로, 슬라이드 단위로 여러 개의 .slide-container를 이어 완성된 HTML 전체를 출력하라. 
+
+# 레이아웃 원칙 (필수)
+- 한 슬라이드 안에 여러 콘텐츠 영역(예: "Action & 임원 의사결정 포인트", "전략 방향 개요", "핵심 문제 정의", "경쟁사 대비 구조적 격차" 등)이 있을 경우, **반드시 세로로만** 배치한다.
+- **2열(좌우 나란히) 레이아웃을 사용하지 말 것.** grid-template-columns: 2fr 1fr, display: grid; grid-template-columns: repeat(2, 1fr), flex-direction: row 등으로 영역을 나란히 두지 말고, 모든 섹션은 위에서 아래로 순서대로 쌓는다.
+- 각 콘텐츠 영역은 .content-block(또는 .slide-section)으로 감싸고, margin-bottom: 24px~32px로 구분하여 **단일 열(세로 배치)** 만 사용한다.
+
+# 색상 팔레트 (반드시 이 값만 사용)
+- 배경 딥다크 1: #0B0E1A (슬라이드 전체 배경 베이스) 
+- 배경 딥다크 2: #101530 (그라디언트 중간) 
+- 배경 딥다크 3: #0D1225 (그라디언트 끝) 
+- 카드 배경: #161B2E (스텝 카드 fill) 
+- 메인 블루: #4F8CFF (accent1 · Step01 포인트 컬러) 
+- 민트 그린: #00D4AA (accent2 · Step02 포인트 컬러) 
+- 퍼플: #A78BFA (accent4 · Step03 포인트 컬러) 
+- 레드: #FF6B6B (accent3 · 경고/강조) 
+- 옐로: #FFD93D (accent5 · CTA·인용) 
+- 서브텍스트: #8090A8 (설명 본문) 
+- 흰색 텍스트: #FFFFFF - 페이지 캔버스: #1A1D2E (body 배경) 
+
+# 폰트 구성 
+- 영문 제목: 'Raleway' 700/800 (Google Fonts) 
+- 한글 전체: 'KoPub돋움' → 웹 대체 'Noto Sans KR' 400/500/700 
+- 영문 수치/스텝번호: 'Montserrat' 800 (Google Fonts) 
+- 영문 본문/캡션: 'Open Sans' 400 (Google Fonts) 
+- Font Awesome 6 Free (아이콘) Google Fonts import 예시: @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@700;800&family=Montserrat:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&family=Open+Sans:wght@400;500&display=swap'); 
+
+# 문서 구조
+- <head>: charset, viewport, title, Google Fonts, Font Awesome 6, <style>…</style> 
+- <body>: background: linear-gradient(180deg, #0B0E1A 0%, #101530 60%, #0D1225 100%); min-height: 100vh; display: grid; place-items: center; padding: 40px 0; gap: 32px; 
+- 각 슬라이드: <div class="slide-container"> width: 1280px; height: 720px; position: relative; overflow: hidden; background: linear-gradient(160deg, #0B0E1A 0%, #101530 55%, #0D1225 100%); box-shadow: 0 8px 48px rgba(0,0,0,0.6); 
+      
+# 슬라이드 내부 레이아웃 (위→아래 순서) 
+- [A],[B],[C],[D]를 주요 구성요소로 생성하고 [E],[F],[G],[H]는 내용 구성과 어울리는 경우에 선택적으로 사용한다. **여러 콘텐츠 영역이 있으면 [H]로 세로 쌓기만 한다. 2열 배치 금지.**
+      [A] 라벨 태그 (.slide-label) position: 내부 흐름 상단; margin-bottom: 4px; font: Raleway 700, **18px**; color: #4F8CFF; letter-spacing: 3px; text-transform: uppercase; 예시: "EXECUTIVE SUMMARY", "HOW IT WORKS" 
+      [B] 헤드라인 (.slide-headline) font: Noto Sans KR 700 (KoPub돋움 계열), **38–42px**; color: #FFFFFF; margin-bottom: 10px; 예시: "현지투어플러스·FND 통합·UX 개편 전략 요약" → 강조 키워드는 <span style="color:#4F8CFF">…</span> 처리 
+      [C] 서브훅 (.slide-subhook) font: Noto Sans KR 400, **18px**; color: #8090A8; margin-bottom: 20px; line-height: 1.5; 예시: "패키지 중심 구조에 종속된 현지투어 고객 여정을 단계적으로 전환하기 위한…" 
+      [D] 구분선 (.slide-divider) width: 100%; height: 1px; background: linear-gradient(90deg, rgba(79,140,255,0) 0%, rgba(79,140,255,0.4) 50%, rgba(79,140,255,0) 100%); margin-bottom: 24px; 
+      [H] 콘텐츠 영역 세로 배치 (.content-block) **한 슬라이드에 여러 섹션이 있으면 반드시 이 블록으로 위→아래 순서만 사용. 2열 금지.** .content-block { margin-bottom: 28px; } .content-block .block-title { font: Noto Sans KR 700, **22px**; color: #FFFFFF; margin-bottom: 12px; } .content-block .block-body { font: Noto Sans KR 400, **17px**; color: #E2E8F0; line-height: 1.65; } .content-block .block-body ul { margin: 8px 0 0 20px; padding: 0; } .content-block .block-body li { margin-bottom: 6px; } 예: "Action & 임원 의사결정 포인트" → .block-title, 그 아래 본문 → .block-body. 이어서 "전략 방향 개요", "핵심 문제 정의", "경쟁사 대비 구조적 격차" 등도 각각 .content-block으로 쌓는다.
+      [E] 3열 스텝 카드 그리드 (.step-grid) display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; flex: 1; 각 카드 (.step-card): background: #161B2E; border-radius: 16px; padding: 28px 24px; border: 1px solid rgba(포인트컬러, 0.25); ← 카드별 포인트컬러 적용 display: flex; flex-direction: column; gap: 8px; 스텝 번호 (.step-number): font: Montserrat 800, **52px**; color: rgba(포인트컬러, 0.20); line-height: 1; 스텝 서브타이틀 (.step-subtitle): font: Montserrat 700, **18px**; color: 포인트컬러; 스텝 타이틀 (.step-title): font: Noto Sans KR 700, **20px**; color: #FFFFFF; 스텝 본문 (.step-desc): font: Noto Sans KR 400 / Open Sans 400, **16px**; color: #8090A8; line-height: 1.7; margin-top: 8px; 포인트컬러 매핑: Step 01 → #4F8CFF Step 02 → #00D4AA Step 03 → #A78BFA 
+      [F] 화살표 구분자 (.step-arrow) 카드 사이에 삽입: <div class="step-arrow">→</div> color: rgba(79,140,255,0.5); font-size: 24px; align-self: center; 
+      [G] 하단 CTA 문장 (.slide-cta) position: absolute; bottom: 24px; left: 60px; right: 60px; text-align: center; font: Noto Sans KR 700, **18px**; color: #FFD93D; 첫 줄: 굵은 강조 문장 둘째 줄: font-weight 400; color: #8090A8; **font-size 16px**; 
+      
+#추가 공통 스타일 (반드시 <style>에 반영)
+* { box-sizing: border-box; margin: 0; padding: 0; } body { font-family: 'Noto Sans KR', 'Open Sans', sans-serif; } .slide-container { padding: 48px 60px 80px; display: flex; flex-direction: column; } .content-block { margin-bottom: 28px; } .content-block .block-title { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 22px; color: #FFFFFF; margin-bottom: 12px; } .content-block .block-body { font-family: 'Noto Sans KR', 'Open Sans', sans-serif; font-weight: 400; font-size: 17px; color: #E2E8F0; line-height: 1.65; } .content-block .block-body ul { margin: 8px 0 0 20px; padding: 0; } .content-block .block-body li { margin-bottom: 6px; } /* 배경 잡음 텍스처 효과 (선택) */ .slide-container::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 20% 50%, rgba(79,140,255,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.04) 0%, transparent 50%); pointer-events: none; } /* 카드 hover (웹 뷰용) */ .step-card:hover { transform: translateY(-4px); transition: transform 0.2s ease; border-color: rgba(79,140,255,0.5); }
+        
+#출력 요구
+1. 위 구조·클래스명·색상·폰트를 정확히 따른다. **한 슬라이드에 여러 콘텐츠 영역이 있으면 반드시 .content-block으로 세로로만 쌓고, 2열(좌우 나란히) 배치를 하지 않는다.**
+2. [원시 데이터]를 분석하여 슬라이드 라벨·헤드라인·서브훅· 각 content-block(block-title, block-body)·스텝카드·하단 CTA를 채운다. 
+3. 슬라이드가 여러 장이면 .slide-container를 반복하여 이어 출력한다. 
+4. 인라인 스타일 최소화 — 모든 스타일은 <style> 블록에 집중한다. 
+5. 완성된 HTML 전체를 코드블록으로 출력한다. [원시 데이터] (여기에 분석할 데이터를 붙여넣으세요)

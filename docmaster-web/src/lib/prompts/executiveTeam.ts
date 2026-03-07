@@ -5,7 +5,7 @@
 export type PromptLang = 'ko' | 'en';
 
 /** 보고서 HTML 템플릿 ID (getTemplateForApi / fetchTemplateFromApi에서 사용). testcases/features는 llmClient에서 전용 폴백 사용 */
-export type HtmlTemplateId = 'default' | 'phase1' | 'presentation2' | 'wiki' | 'preformat' | 'pptx' | 'testcases' | 'features';
+export type HtmlTemplateId = 'phase1' | 'presentation2' | 'wiki' | 'preformat' | 'pptx' | 'testcases' | 'features';
 
 /** 경영진/실무 보고서 생성 시 프롬프트·유저 메시지 조합 결과 */
 export type ReportGenerationConfig = {
@@ -16,7 +16,7 @@ export type ReportGenerationConfig = {
 
 export const DEFAULT_PROMPT_EXECUTIVE_EDITABLE = `# Role & Objective
 당신은 20년 차 최고 전략 책임자(CSO)이자 임원 보고 전문 비서실장입니다.
-당신의 임무는 [원천 데이터]를 바탕으로 경영진이 즉각적인 의사결정을 내릴 수 있는 '핵심 보고서'를 작성하는 것입니다. 단, 초안을 바로 출력하지 않고 스스로 논리의 허점을 공격하고 수정하는 [자가 검증(Iteration), **최대 3회**]을 거쳐 가장 정교하고 실리적인 최종안을 도출해야 합니다.
+당신의 임무는 [원천 데이터]를 바탕으로 경영진이 즉각적인 의사결정을 내릴 수 있는 '핵심 보고서'를 작성하는 것입니다. 단, 초안을 바로 출력하지 않고 스스로 논리의 허점을 공격하고 수정하는 [자가 검증(Iteration), **최대 2회**]을 거쳐 가장 정교하고 실리적인 최종안을 도출해야 합니다.
 
 # Input Data 규칙
 - [원천 데이터]: Python으로 PDF/PPTX에서 추출·정제된 마크다운입니다. 슬라이드·페이지 구분, 표·다이어그램 블록이 포함될 수 있습니다.
@@ -29,11 +29,13 @@ export const DEFAULT_PROMPT_EXECUTIVE_EDITABLE = `# Role & Objective
 2. 두괄식 의사결정: 보고서 최상단에 '임원이 이 보고서를 읽고 승인/결정해야 할 단 하나의 Action'을 명시하십시오.
 3. 객관적 대안(Trade-off): 추천안을 돋보이게 하기 위해 들러리용 대안을 세우지 말고, 각 대안의 치명적 단점과 비용을 냉정하게 비교하십시오.
 4. 리스크·대안이 없으면 창작 금지: 원천 데이터에 리스크, 통제 방안, 대안 비교가 전혀 없으면 해당 슬라이드/섹션을 "해당 없음" 또는 데이터에 있는 내용만 간단히 요약하고, 없는 리스크·대안·통제방안을 억지로 넣거나 지어내지 말 것.
+5. 명사형 종결을 써서 불릿·개조식으로 작성. 문장간 블릿 필수.
 
 # 필수 출력 항목(섹션 구성)
-**이 단계의 최종 출력은 정리된 마크다운만이다.** HTML은 별도 단계에서 [정리된 보고 내용]을 기준으로 생성된다. 아래 필수 항목을 **마크다운 보고서**에 모두 포함할 것. **각 주요 항목(섹션)은 3~4줄 분량으로 핵심만 정리**할 것. 한 화면에 한 주제만 담아 가독성을 유지하라. 원천 데이터에 없는 내용은 "해당 없음" 또는 요약만 기술하고 창작하지 말 것.
+**이 단계의 최종 출력은 정리된 마크다운만이다.** 아래 필수 항목을 **마크다운 보고서**에 모두 포함할 것. **각 주요 항목(섹션)은 1~2줄 분량으로 핵심만 정리**할 것. 한 화면에 한 주제만 담아 가독성을 유지하라.
+원천 데이터에 없는 내용은 "해당 없음" 또는 요약만 기술하고 창작하지 말 것.
 
-1. **Executive Summary (핵심 요약):** 가독성을 위해 반드시 불릿으로 나누어 작성. 각 불릿은 한 주제만 담고 2~4문장 이내로 짧게. 한 덩어리 문단으로 쓰지 말 것.
+1. **Executive Summary (핵심 요약):** 가독성을 위해 반드시 불릿으로 나누어 작성. 각 불릿은 한 주제만 담고 1~2문장 이내로 짧게. 한 덩어리 문단으로 쓰지 말 것.
 2. **목적/배경:** why, 무엇을 목표로 하는지 명확히 명시.
 3. **핵심 변경사항/정책 요약/핵심 요건:** 핵심만 압축하여 나열. 무엇이 변경/개선되는지 작업 범위를 명확히.
 4. **전체 프로세스 흐름도:** 단계·담당 시스템을 표/텍스트로 반영.
@@ -50,14 +52,14 @@ export const DEFAULT_PROMPT_EXECUTIVE_EDITABLE = `# Role & Objective
 - **비즈니스 임팩트:** 본 사안이 비용·일정·품질에 미치는 구체적 영향.
 - **초안의 한계점:** 원천 데이터만으로 보고하기에 부족한 논리나 누락된 데이터.
 
-## Step 2: 자가 검증 및 논리 정교화 (N-Iteration — 최대 3회)
-Step 1 초안을 C-Level 시각에서 검증하십시오. **반복은 최대 3회까지**로 제한한다.
+## Step 2: 자가 검증 및 논리 정교화 (N-Iteration — 최대 2회)
+Step 1 초안을 C-Level 시각에서 검증하십시오. **반복은 최대 2회까지**로 제한한다.
 - **[1차 검증 - 'Why']:** "이걸 꼭 지금 해야 하는가? 안 했을 때 손실은?"에 대해 논리를 보완하십시오.
 - **[2차 검증 - 추상 표현 제거]:** 모호한 기대효과를 구체적 팩트와 Action Item으로 변환하십시오.
-- **[3차 이내 - 최종 정리]:** 위 검증을 반영한 **최종 정리 마크다운만** 출력. HTML이나 Step 3은 수행하지 말 것.`;
+- **[2차 이내 - 최종 정리]:** 위 검증을 반영한 **최종 정리 마크다운만** 출력.`;
 
 export const DEFAULT_PROMPT_EXECUTIVE_EDITABLE_EN = `# Role & Objective
-You are a 20-year veteran Chief Strategy Officer (CSO) and executive reporting specialist (chief-of-staff level). Your task is to produce a one-page executive brief (1-Pager) from [Source Data] that enables leadership to make immediate decisions. Do not output a draft as-is; perform self-review (iteration), **up to 3 rounds**, to challenge and refine the logic, then output the most precise and actionable final version. **Output is refined markdown only; HTML is generated in a separate step.**
+You are a 20-year veteran Chief Strategy Officer (CSO) and executive reporting specialist (chief-of-staff level). Your task is to produce a one-page executive brief from [Source Data] that enables leadership to make immediate decisions. Do not output a draft as-is; perform self-review (iteration), **up to 2 rounds**, to challenge and refine the logic, then output the most precise and actionable final version.
 
 # Input Data Rules
 - [Source Data]: Markdown extracted and refined from PDF/PPTX by Python. It may include slide/page breaks and table/diagram blocks.
@@ -70,11 +72,13 @@ You are a 20-year veteran Chief Strategy Officer (CSO) and executive reporting s
 2. Lead with the decision: At the top, state the single Action the executive must approve or decide after reading.
 3. Objective trade-offs: Do not set up straw-man alternatives. Compare material downsides and costs of each option fairly.
 4. No inventing risks/alternatives: If the source has no risks, controls, or alternatives, label the section "N/A" or briefly summarize only what exists. Do not fabricate content.
+5. Use noun-form endings and write in bullets/outline form. Bullets between sentences are required.
 
 # Required Output Sections
-**This step's output is refined markdown only.** HTML is generated in a separate step from the refined content. Include **all** of the following in the **markdown report**. **Summarize each main section in 3–4 lines; keep content concise and scannable.** Keep one topic per screen for readability. Do not invent content missing from the source.
+**This step's output is refined markdown only.** Include **all** of the following in the **markdown report**. **Summarize each main section in 1–2 lines; keep content concise.** Keep one topic per screen for readability.
+Do not invent content missing from the source.
 
-1. **Executive Summary:** Use bullet items. One topic per bullet, 2–4 sentences max. No long paragraphs.
+1. **Executive Summary:** Use bullet items. One topic per bullet, 1–2 sentences max. No long paragraphs.
 2. **Purpose / Background:** State clearly why this is needed and what the objective is.
 3. **Key changes / policy summary / key requirements:** List concisely. Make clear what is changing or in scope.
 4. **End-to-end process flow:** Reflect steps and owning systems in a table or text.
@@ -91,27 +95,13 @@ Analyze the source and define the following:
 - **Business impact:** Concrete impact of this matter on cost, schedule, and quality.
 - **Limitations of the draft:** Gaps in logic or missing data that make the draft insufficient for decision-making.
 
-## Step 2: Self-review and logic refinement (N-Iteration — max 3)
-Review the Step 1 draft from a C-level lens. **Limit iterations to 3 at most.**
+## Step 2: Self-review and logic refinement (N-Iteration — max 2)
+Review the Step 1 draft from a C-level lens. **Limit iterations to 2 at most.**
 - **[1st pass — 'Why']:** Strengthen the logic for "Why must we do this now? What is the cost of inaction?"
 - **[2nd pass — Remove abstraction]:** Replace vague expected benefits with concrete facts and action items.
-- **[3rd or fewer — Final]** Output **only the final refined markdown**. Do not perform Step 3 or output HTML.`;
+- **[2nd or fewer — Final]:** Output **only the final refined markdown**.`;
 
-export const HTML_FIXED_EXECUTIVE = `
-# HTML 출력 규칙 (엄격히 준수)
-- [정리된 보고 내용]은 입력으로 이미 제공된다. **최종 출력은 완성 HTML 하나만** 내보낸다. 마크다운 블록을 출력하지 말 것.
-- \`\`\`html 로 시작하는 블록 하나에, [정리된 보고 내용]을 주어진 [HTML 형식 스타일 가이드]에 맞춰 반영한 **완성 HTML만** 출력하라. 마크다운 코드블록(\`\`\`markdown 등)은 포함하지 말 것.
-- 필수 항목이 **누락 없이** 각 슬라이드(변수)에 1:1로 채워져 있어야 한다. 변수 매핑: {{summary}}, {{purpose_background}}, {{key_changes}}, {{process_flow}}, {{recommendations}}, {{risks}}, {{action_item}}.
-- **동적 포맷:** 사용자가 프롬프트에서 정의한 변수·섹션이 기본 템플릿에 없으면(예: 추가 항목, 컬럼 추가), 동일한 스타일(report-slide, report-card, check-list)과 슬라이드 네비 구조를 유지하면서 슬라이드 또는 섹션을 추가하여 반영하라.
-- **슬라이드 수 확장:** 정리된 내용이 **기본 슬라이드에 담기에는 많거나**, 한 슬라이드 한 주제 원칙을 지키려면 더 많은 슬라이드가 필요하면 **추가 슬라이드를 반드시 추가**하라. 추가 방법: 기존과 동일한 report-slide div 구조(data-slide 속성 8, 9, 10…)를 슬라이드 네비게이션(slide-nav div) **바로 앞**에 삽입. 정해진 개수에 맞추려고 내용을 잘라 내지 말 것. 슬라이드 카운터는 스크립트가 자동으로 갱신하므로 수정하지 말 것.
-- 템플릿 변수({{summary}}, {{purpose_background}}, {{key_changes}}, {{process_flow}}, {{recommendations}}, {{risks}}, {{action_item}})를 채울 때:
-  - <ul class="check-list"> 내 <li>에는 텍스트만 넣고 ✓ 기호를 넣지 말 것. 체크(✓)는 CSS로 자동 표시됨.
-  - 텍스트 나열 대신 카드(report-card), 체크리스트(check-list), 표(table) 등 오브젝트를 사용하여 각 변수를 풍부하게 채울 것.
-- 슬라이드 네비게이션(이전/다음) 스크립트는 수정하지 말고 그대로 두라.
-
-**출력 형식:** \`\`\`html ... \`\`\` 블록 **하나만** 출력. 그 외 설명·마크다운 블록은 출력하지 말 것.`;
-
-export const DEFAULT_PROMPT_EXECUTIVE = DEFAULT_PROMPT_EXECUTIVE_EDITABLE + HTML_FIXED_EXECUTIVE;
+export const DEFAULT_PROMPT_EXECUTIVE = DEFAULT_PROMPT_EXECUTIVE_EDITABLE;
 
 export const DEFAULT_PROMPT_TEAM_EDITABLE = `# Role & Objective
 당신은 20년 차 최고 수준의 IT 아키텍트이자 프로젝트 관리자(PM)입니다.
@@ -145,7 +135,7 @@ export const DEFAULT_PROMPT_TEAM_EDITABLE = `# Role & Objective
 7. **최종 슬라이드:** **상세** 결론·다음 액션·담당·일정.
 
 # Execution Steps
-반드시 아래 Step 1, Step 2만 수행하고, **최종 출력은 정리된 마크다운만** 내보낸다. HTML 출력은 하지 않는다(별도 단계에서 처리됨). 자가 검증(Iteration)은 **최대 3회**까지로 제한한다.
+반드시 아래 Step 1, Step 2만 수행하고, **최종 출력은 정리된 마크다운만** 내보낸다. HTML 출력은 하지 않는다(별도 단계에서 처리됨). 자가 검증(Iteration)은 **최대 2회**까지로 제한한다.
 
 ## Step 1: 소스 데이터 해체 및 프로파일링 (출력 필수)
 원천 데이터를 읽고 아래 항목에 대해 단답형 정의하십시오.
@@ -153,8 +143,8 @@ export const DEFAULT_PROMPT_TEAM_EDITABLE = `# Role & Objective
 - **주요 타겟 실무진:** (예: 백엔드 개발자 및 QA, 프론트엔드 및 UX UI 디자이너 등)
 - **현재 원천 데이터의 결측치:** 실무 구현에 필요하지만 현재 데이터에 누락된 가장 치명적인 정보 1가지.
 
-## Step 2: 실무 구현을 위한 심층 분석 (출력 필수, N-Iteration — 최대 3회)
-아래 관점에서 데이터를 분석하고 텍스트로 출력하십시오. **반복은 최대 3회까지.** 단, 원천 데이터에 해당 내용이 없으면 "해당 없음"으로 하고 지어내지 말 것.
+## Step 2: 실무 구현을 위한 심층 분석 (출력 필수, N-Iteration — 최대 2회)
+아래 관점에서 데이터를 분석하고 텍스트로 출력하십시오. **반복은 최대 2회까지.** 단, 원천 데이터에 해당 내용이 없으면 "해당 없음"으로 하고 지어내지 말 것.
 1. **운영 정책 및 비즈니스 룰 (Policy):** 원천 데이터에서 확인되는 제약 조건, 권한, 과금 기준, 상태 룰 등.
 2. **우려 사항 및 엣지 케이스:** 원천 데이터에 예외 상황·데이터 충돌·우려가 있을 때만 2가지 이상 도출. 없으면 "해당 없음".
 3. **사전 리스크 및 통제 방안:** 원천 데이터에 리스크·통제가 있을 때만 식별하고 Action Item을 짝지어 서술. 없으면 "해당 없음".
@@ -178,7 +168,7 @@ You are a senior IT architect and project manager (PM) with 20 years of experien
 4. No inventing risks: If the source has no concerns, edge cases, or controls, omit the section or use "N/A." Do not add fake risks or action items.
 
 # Required Output Sections
-**This step's output is refined markdown only.** HTML is generated in a separate step. The markdown report must include **all** required sections; **for team reports each section must be detailed and rich.** If content is long, add more sections so nothing is cut. Use "N/A" or a short summary only when the source lacks the content. **Limit self-review iteration to 3 at most.**
+**This step's output is refined markdown only.** HTML is generated in a separate step. The markdown report must include **all** required sections; **for team reports each section must be detailed and rich.** If content is long, add more sections so nothing is cut. Use "N/A" or a short summary only when the source lacks the content. **Limit self-review iteration to 2 at most.**
 
 1. **Executive Summary:** 2–6 bullet items, 2–4 **concrete** sentences each. No long paragraphs.
 2. **Purpose / Background:** State clearly why and what the objective is; include **full context**, constraints, and assumptions.
@@ -189,7 +179,7 @@ You are a senior IT architect and project manager (PM) with 20 years of experien
 7. **Final slide:** **Detailed** conclusion, next actions, owners, and timelines.
 
 # Execution Steps
-Perform only Step 1 and Step 2. **Output only the refined markdown.** Do not output HTML (handled in a separate step). **N-Iteration — max 3.**
+Perform only Step 1 and Step 2. **Output only the refined markdown.** Do not output HTML (handled in a separate step). **N-Iteration — max 2.**
 
 ## Step 1: Source data breakdown and profiling (required)
 Read the source and define the following in short form:
@@ -197,27 +187,14 @@ Read the source and define the following in short form:
 - **Target audience:** (e.g., backend developers and QA, frontend and UX/UI designers)
 - **Critical gap in the source:** The single most critical piece of information missing for implementation.
 
-## Step 2: Deep analysis for implementation (required, N-Iteration — max 3)
-Analyze from the following perspectives and output in text. **Limit iterations to 3.** Use "N/A" when the source has no such content; do not invent.
+## Step 2: Deep analysis for implementation (required, N-Iteration — max 2)
+Analyze from the following perspectives and output in text. **Limit iterations to 2.** Use "N/A" when the source has no such content; do not invent.
 1. **Policy and business rules:** Constraints, permissions, billing rules, state rules, etc. found in the source.
 2. **Concerns and edge cases:** Only if present in the source — list at least two; otherwise "N/A".
 3. **Pre-risks and controls:** Only if present in the source — identify and pair with action items; otherwise "N/A".
 Output **only the final refined markdown**. Do not perform Step 3 (Assemble HTML).`;
 
-export const HTML_FIXED_TEAM = `
-# HTML 출력 규칙 (엄격히 준수)
-- [정리된 보고 내용]은 입력으로 이미 제공된다. **최종 출력은 완성 HTML 하나만** 내보낸다. 마크다운 블록을 출력하지 말 것.
-- \`\`\`html 로 시작하는 블록 하나에, [정리된 보고 내용]을 주어진 [HTML 형식 스타일 가이드]에 맞춰 **누락 없이** 반영한 완성 HTML만 출력하라. 마크다운 코드블록은 포함하지 말 것.
-- **실무용은 페이지/슬라이드 수 제한이 없다.** 정리된 내용이 많으면 기본 변수 외에 **동일한 스타일(report-slide, report-card, check-list)로 슬라이드(섹션)를 추가**하여 모든 내용을 누락 없이 담을 것. 내용을 잘라 내거나 압축하지 말 것.
-- 필수 항목은 해당 변수에 1:1로 채운다. 변수 매핑: {{summary}}, {{purpose_background}}, {{key_changes}}, {{process_flow}}, {{recommendations}}, {{risks}}, {{action_item}}. **추가 내용이 있으면** 동일 스타일의 report-slide를 이어서 추가하라.
-- **동적 포맷:** 사용자가 프롬프트에서 정의한 변수·섹션이 기본 템플릿에 없으면, 동일한 스타일과 슬라이드 네비 구조를 유지하면서 슬라이드 또는 섹션을 추가하여 반영하라.
-- **슬라이드 추가 방법:** 추가 슬라이드는 기존과 동일한 report-slide div 구조(data-slide 8, 9, 10…)로 슬라이드 네비(slide-nav div) 바로 앞에 삽입. 슬라이드 카운터는 스크립트가 자동 갱신하므로 수정하지 말 것.
-- 각 슬라이드(변수)에는 **풍부한 내용**을 담을 것. <ul class="check-list"> 내 <li>에는 텍스트만 넣고 ✓ 기호를 넣지 말 것(체크는 CSS로 자동 표시). report-card·check-list·표로 **구체적 내용**을 채울 것. 한두 줄로 압축하지 말 것.
-- 화면 요건, 로직, 데이터 연동 조건 등은 표(Table)로 촘촘하게 구조화하십시오.
-
-**출력 형식:** \`\`\`html ... \`\`\` 블록 **하나만** 출력. 그 외 설명·마크다운 블록은 출력하지 말 것.`;
-
-export const DEFAULT_PROMPT_TEAM = DEFAULT_PROMPT_TEAM_EDITABLE + HTML_FIXED_TEAM;
+export const DEFAULT_PROMPT_TEAM = DEFAULT_PROMPT_TEAM_EDITABLE;
 
 export function getDefaultExecutiveEditable(lang: PromptLang): string {
   return lang === 'en' ? DEFAULT_PROMPT_EXECUTIVE_EDITABLE_EN : DEFAULT_PROMPT_EXECUTIVE_EDITABLE;
@@ -229,6 +206,11 @@ export function getDefaultTeamEditable(lang: PromptLang): string {
 
 /** 기본(경영진) HTML 스타일 가이드 — getTemplateForApi('default') 등에서 사용 */
 export const DEFAULT_HTML_STYLE_GUIDE = `[경영진 보고서(기본) HTML 형식 — 스타일 가이드]
+
+■ 목표 및 품질 원칙
+- **내용 정확성:** [정리된 보고 내용]에 있는 섹션·항목·데이터를 그대로 반영한다. 없던 내용을 만들지 말고, 있던 내용을 생략·요약하여 빼지 말 것. 각 변수({{summary}}, {{purpose_background}} 등)에는 해당 섹션의 **전체 내용**을 빠짐없이 넣는다.
+- **비주얼·가독성:** 제목은 슬라이드별로 한 개만 두고, 본문은 단락·리스트·카드·표로 구분해 한눈에 스캔 가능하게 만든다. 본문 글자색은 #475569·#1e293b 등 충분한 대비를 유지하고, 줄간격(line-height) 1.5 이상, 단락/카드 간 여백을 넉넉히 둔다.
+- **보고서다움:** 경영진이 한 장씩 넘기며 읽는 슬라이드형 보고서 느낌을 유지한다. 흰 배경·카드·테두리·그림자·슬라이드 네비를 일관되게 적용하고, 난잡한 레이아웃·과한 장식·글자 겹침 없이 정돈된 인상을 주도록 한다.
 
 ■ 문서 구조
 - <!DOCTYPE html>, <html lang="ko">, <head>(meta charset, viewport, title, Tailwind CDN 또는 <style>...</style>), <body>
@@ -258,6 +240,7 @@ export const DEFAULT_HTML_STYLE_GUIDE = `[경영진 보고서(기본) HTML 형�
 - .slide-nav button { padding: 8px 20px; font-weight: 600; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; color: #475569; cursor: pointer; }
 - .slide-nav button:hover { background: #667eea; color: #fff; border-color: #667eea; }
 - 슬라이드 제목: <h2 class="text-lg font-semibold text-slate-800 mb-4 border-l-4 border-indigo-500 pl-4">…
+- 가독성: 본문 단락·리스트에는 line-height: 1.5~1.6, 카드/섹션 간 margin-bottom 16px 이상 권장. 표는 th 배경 #f8fafc, 셀 패딩 10px 12px 이상.
 
 ■ 슬라이드 전환 스크립트 (필수)
 - .report-slide 목록, current 인덱스, showSlide(i), slide-prev/slide-next 버튼 클릭 시 showSlide(current ± 1), slide-counter 텍스트 갱신. 반드시 포함할 것.
@@ -378,7 +361,7 @@ export const QUALITY_RUBRIC_AND_NO_LOSS = `
 - □ **콘텐츠가 풍부한가?** 각 섹션이 한두 줄 요약이 아니라, 맥락·구체적 내용·필요 시 예시·조건이 담겨 실무자가 실행 가능한 수준인가?
 
 # 절대 준수 사항
-- **중요 포인트와 핵심이 사라지거나, 과도하게 축약되어 전달이 누락되면 안 된다.** 회차를 반복할 때(**최대 3회**)에도 원천 데이터의 핵심 메시지·수치·결정 포인트는 반드시 유지·반영하라. 요약은 하되 "삭제"하지 말 것.
+- **중요 포인트와 핵심이 사라지거나, 과도하게 축약되어 전달이 누락되면 안 된다.** 회차를 반복할 때(**최대 2회**)에도 원천 데이터의 핵심 메시지·수치·결정 포인트는 반드시 유지·반영하라. 요약은 하되 "삭제"하지 말 것.
 - **정리 내용 md는 알맹이 있는 문서여야 한다.** 제목·불릿 한 줄만 나열하지 말고, 각 항목에 구체적 설명·배경·수치·조건을 넣어 읽는 이가 맥락을 이해하고 행동할 수 있도록 작성하라.
 - **원천 데이터가 길면(수백~수천 줄·많은 슬라이드) 반드시 전체를 분석**하여, 정리 md에 주요 섹션·슬라이드·표·핵심 수치를 **빠짐없이** 반영할 것. 정리 md 분량은 원천 분량에 비례하여 충분히 길어야 하며, 몇 줄 요약으로 끝내지 말 것.
 - **출력 마크다운에는 프롬프트의 실행 단계 제목(예: "## Step 1:", "## Step 2:", "## Step 3: 실무 공유용 HTML 문서 조립" 등)을 넣지 말 것.** 보고서 본문만 출력할 것. 섹션은 "Executive Summary", "목적/배경", "핵심 변경사항" 등 필수 출력 항목 제목으로만 구분하라.
@@ -473,32 +456,139 @@ export const PHASE1_STYLE_GUIDE = `[기획/제안서 HTML 형식 — 스타일 �
 ■ 출력 요구
 - 위 구조·클래스명·색상·레이아웃을 정확히 따르고, [원시 데이터] 분석 결과로 제목·섹션 제목·리스트·표·카드 내용만 채워 완성된 HTML 전체를 출력하라.`;
 
-/** 프레젠테이션 슬라이드 16:9 스타일 — presentation2 템플릿 */
-export const PRESENTATION2_STYLE_GUIDE = `[프레젠테이션 슬라이드 HTML 형식 — 스타일 가이드]
+/** 프레젠테이션 슬라이드 16:9 스타일 — presentation2 템플릿 (딥다크, 한글) */
+export const PRESENTATION2_STYLE_GUIDE = `아래 [디자인 스펙]과 [원시 데이터]를 바탕으로, 슬라이드 단위로 여러 개의 .slide-container를 이어 완성된 HTML 전체를 출력하라.
 
-■ 문서 구조
-- head: charset, viewport, title, Google Fonts (Montserrat 700/800, Noto Sans KR 400/500/700), Font Awesome 6, <style>...</style>
-- body: background #e2e8f0; display grid; place-items center; padding 20px 0; gap 20px
-- 각 "슬라이드": <div class="slide-container"> (width 1280px; height 720px; background #fff; padding 60px; position relative; box-shadow)
-  - slide-container::before (선택): radial-gradient 장식
-  - 내부: <h2 class="slide-title"> (슬라이드 제목) + <div class="content-area"> (본문) + <div class="speaker-notes"> (하단 발표자 노트, position absolute; bottom 0; background #1e293b; color #cbd5e1; padding 12px 60px; font-style italic)
+# 레이아웃 원칙 (필수)
+- 한 슬라이드 안에 여러 콘텐츠 영역(예: "Action & 임원 의사결정 포인트", "전략 방향 개요", "핵심 문제 정의", "경쟁사 대비 구조적 격차" 등)이 있을 경우, **반드시 세로로만** 배치한다.
+- **2열(좌우 나란히) 레이아웃을 사용하지 말 것.** grid-template-columns: 2fr 1fr, display: grid; grid-template-columns: repeat(2, 1fr), flex-direction: row 등으로 영역을 나란히 두지 말고, 모든 섹션은 위에서 아래로 순서대로 쌓는다.
+- 각 콘텐츠 영역은 .content-block(또는 .slide-section)으로 감싸고, margin-bottom: 24px~32px로 구분하여 **단일 열(세로 배치)** 만 사용한다.
 
-■ 스타일 요약 (반드시 <style>에 반영)
-- h1,h2,h3: color #003366; font Montserrat, Noto Sans KR
-- .slide-title: font-size 40px; font-weight 800; margin-bottom 40px; border-left 10px solid #00A9E0; padding-left 20px
-- .content-area: flex-grow 1; display flex; flex-direction column; justify-content center
-- 2단 레이아웃: <div class="two-column"> (display grid; grid-template-columns 1fr 1fr; gap 50px)
-- 통계 타일: <div class="stat-card"> (background #f8fafc; border-radius 16px; padding 25px; border 1px solid #e2e8f0; text-align center), 내부 <h4> + <div class="value"> (font-size 44px; font-weight 800; color #00A9E0; font Montserrat)
-- 표: table width 100%; border-collapse collapse; th { background #003366; color #fff; padding 18px }; td { padding 15px 18px; border-bottom 1px solid #e2e8f0 }
-- 테마 카드 3열: <div class="theme-grid"> (grid; grid-template-columns repeat(3,1fr); gap 20px)
-  - <div class="theme-card"> (background #003366; color #fff; padding 35px; border-radius 20px; min-height 300px; flex column)
-  - theme-card h3: color #00A9E0; font-size 22px
-  - theme-card ul/li: color #fff; list-style disc
-  - theme-card .goal: margin-top 20px; font-weight 700; border-top 1px solid rgba(255,255,255,0.2); padding-top 15px
-- CTA: <div class="call-to-action"> (background linear-gradient 90deg #003366, #00A9E0); color #fff; padding 25px; border-radius 12px; text-align center; font-size 22px; font-weight 700)
+# 색상 팔레트 (반드시 이 값만 사용)
+- 배경 딥다크 1: #0B0E1A (슬라이드 전체 배경 베이스)
+- 배경 딥다크 2: #101530 (그라디언트 중간)
+- 배경 딥다크 3: #0D1225 (그라디언트 끝)
+- 카드 배경: #161B2E (스텝 카드 fill)
+- 메인 블루: #4F8CFF (accent1 · Step01 포인트 컬러)
+- 민트 그린: #00D4AA (accent2 · Step02 포인트 컬러)
+- 퍼플: #A78BFA (accent4 · Step03 포인트 컬러)
+- 레드: #FF6B6B (accent3 · 경고/강조)
+- 옐로: #FFD93D (accent5 · CTA·인용)
+- 서브텍스트: #8090A8 (설명 본문)
+- 흰색 텍스트: #FFFFFF
+- 페이지 캔버스: #1A1D2E (body 배경)
 
-■ 출력 요구
-- 위 구조·클래스명·색상(메인 #003366, 포인트 #00A9E0)·레이아웃을 정확히 따르고, [원시 데이터] 분석 결과로 슬라이드 제목·본문·표·카드·발표자 노트 내용을 채워, 슬라이드 단위로 여러 개의 .slide-container를 이어 완성된 HTML 전체를 출력하라.`;
+# 폰트 구성
+- 영문 제목: 'Raleway' 700/800 (Google Fonts)
+- 한글 전체: 'KoPub돋움' → 웹 대체 'Noto Sans KR' 400/500/700
+- 영문 수치/스텝번호: 'Montserrat' 800 (Google Fonts)
+- 영문 본문/캡션: 'Open Sans' 400 (Google Fonts)
+- Font Awesome 6 Free (아이콘)
+- Google Fonts import 예시: @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@700;800&family=Montserrat:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&family=Open+Sans:wght@400;500&display=swap');
+
+# 문서 구조
+- <head>: charset, viewport, title, Google Fonts, Font Awesome 6, <style>…</style>
+- <body>: background: linear-gradient(180deg, #0B0E1A 0%, #101530 60%, #0D1225 100%); min-height: 100vh; display: grid; place-items: center; padding: 40px 0; gap: 32px;
+- 각 슬라이드: <div class="slide-container"> width: 1280px; height: 720px; position: relative; overflow: hidden; background: linear-gradient(160deg, #0B0E1A 0%, #101530 55%, #0D1225 100%); box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+
+# 슬라이드 내부 레이아웃 (위→아래 순서)
+- [A],[B],[C],[D]를 주요 구성요소로 생성하고 [E],[F],[H]는 내용 구성과 어울리는 경우에 선택적으로 사용한다. **여러 콘텐츠 영역이 있으면 [H]로 세로 쌓기만 한다. 2열 배치 금지.**
+  [A] 라벨 태그 (.slide-label) position: 내부 흐름 상단; margin-bottom: 4px; font: Raleway 700, 18px; color: #4F8CFF; letter-spacing: 3px; text-transform: uppercase; 예시: "EXECUTIVE SUMMARY", "HOW IT WORKS"
+  [B] 헤드라인 (.slide-headline) font: Noto Sans KR 700, 38–42px; color: #FFFFFF; margin-bottom: 10px; 예시: "현지투어플러스·FND 통합·UX 개편 전략 요약" → 강조 키워드는 <span style="color:#4F8CFF">…</span> 처리
+  [C] 서브훅 (.slide-subhook) font: Noto Sans KR 400, 18px; color: #8090A8; margin-bottom: 20px; line-height: 1.5; 예시: "패키지 중심 구조에 종속된 현지투어 고객 여정을 단계적으로 전환하기 위한…"
+  [D] 구분선 (.slide-divider) width: 100%; height: 1px; background: linear-gradient(90deg, rgba(79,140,255,0) 0%, rgba(79,140,255,0.4) 50%, rgba(79,140,255,0) 100%); margin-bottom: 24px;
+  [H] 콘텐츠 영역 세로 배치 (.content-block) **한 슬라이드에 여러 섹션이 있으면 반드시 이 블록으로 위→아래 순서만 사용. 2열 금지.** .content-block { margin-bottom: 28px; } .content-block .block-title { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 22px; color: #FFFFFF; margin-bottom: 12px; } .content-block .block-body { font-family: 'Noto Sans KR', 'Open Sans', sans-serif; font-weight: 400; font-size: 17px; color: #E2E8F0; line-height: 1.65; } .content-block .block-body ul { margin: 8px 0 0 20px; padding: 0; } .content-block .block-body li { margin-bottom: 6px; } 예: "Action & 임원 의사결정 포인트" → .block-title, 그 아래 본문 → .block-body. 이어서 "전략 방향 개요", "핵심 문제 정의", "경쟁사 대비 구조적 격차" 등도 각각 .content-block으로 쌓는다.
+  [E] 3열 스텝 카드 그리드 (.step-grid) display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; flex: 1; 각 카드 (.step-card): background: #161B2E; border-radius: 16px; padding: 28px 24px; border: 1px solid rgba(포인트컬러, 0.25); display: flex; flex-direction: column; gap: 8px; 스텝 번호 (.step-number): font: Montserrat 800, 52px; color: rgba(포인트컬러, 0.20); line-height: 1; 스텝 서브타이틀 (.step-subtitle): font: Montserrat 700, 18px; color: 포인트컬러; 스텝 타이틀 (.step-title): font: Noto Sans KR 700, 20px; color: #FFFFFF; 스텝 본문 (.step-desc): font: Noto Sans KR 400 / Open Sans 400, 16px; color: #8090A8; line-height: 1.7; margin-top: 8px; 포인트컬러 매핑: Step 01 → #4F8CFF Step 02 → #00D4AA Step 03 → #A78BFA
+  [F] 화살표 구분자 (.step-arrow) 카드 사이에 삽입: <div class="step-arrow">→</div> color: rgba(79,140,255,0.5); font-size: 24px; align-self: center;
+
+# 추가 공통 스타일 (반드시 <style>에 반영)
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', 'Open Sans', sans-serif; }
+.slide-container { padding: 48px 60px 80px; display: flex; flex-direction: column; }
+.content-block { margin-bottom: 28px; }
+.content-block .block-title { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 22px; color: #FFFFFF; margin-bottom: 12px; }
+.content-block .block-body { font-family: 'Noto Sans KR', 'Open Sans', sans-serif; font-weight: 400; font-size: 17px; color: #E2E8F0; line-height: 1.65; }
+.content-block .block-body ul { margin: 8px 0 0 20px; padding: 0; }
+.content-block .block-body li { margin-bottom: 6px; }
+.slide-container::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 20% 50%, rgba(79,140,255,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.04) 0%, transparent 50%); pointer-events: none; }
+.step-card:hover { transform: translateY(-4px); transition: transform 0.2s ease; border-color: rgba(79,140,255,0.5); }
+
+# 출력 요구
+1. 위 구조·클래스명·색상·폰트를 정확히 따른다. **한 슬라이드에 여러 콘텐츠 영역이 있으면 반드시 .content-block으로 세로로만 쌓고, 2열(좌우 나란히) 배치를 하지 않는다.**
+2. [원시 데이터]를 분석하여 슬라이드 라벨·헤드라인·서브훅· 각 content-block(block-title, block-body)·스텝카드.
+3. 슬라이드가 여러 장이면 .slide-container를 반복하여 이어 출력한다.
+4. 인라인 스타일 최소화 — 모든 스타일은 <style> 블록에 집중한다.
+5. 완성된 HTML 전체를 코드블록으로 출력한다.
+
+[원시 데이터]
+(여기에 분석할 데이터를 붙여넣으세요)`;
+
+/** 프레젠테이션 슬라이드 16:9 스타일 — presentation2 템플릿 (딥다크, 영문) */
+export const PRESENTATION2_STYLE_GUIDE_EN = `Output the complete HTML by chaining multiple .slide-container elements per slide, based on the [Design Spec] and [Source Data] below.
+
+# Layout rules (required)
+- When a slide has multiple content areas (e.g. "Action & executive decision point", "Strategy overview", "Core problem", "Competitive gap"), **stack them vertically only.**
+- **Do not use 2-column (side-by-side) layout.** Do not place areas next to each other with grid-template-columns: 2fr 1fr, display: grid; grid-template-columns: repeat(2, 1fr), flex-direction: row, etc. All sections must stack top to bottom in order.
+- Wrap each content area in .content-block (or .slide-section) with margin-bottom: 24px–32px; use **single column (vertical) only.**
+
+# Color palette (use these values only)
+- Background deep dark 1: #0B0E1A (slide base)
+- Background deep dark 2: #101530 (gradient mid)
+- Background deep dark 3: #0D1225 (gradient end)
+- Card background: #161B2E (step card fill)
+- Main blue: #4F8CFF (accent1 · Step01)
+- Mint green: #00D4AA (accent2 · Step02)
+- Purple: #A78BFA (accent4 · Step03)
+- Red: #FF6B6B (accent3 · warning/emphasis)
+- Yellow: #FFD93D (accent5 · CTA/callout)
+- Sub text: #8090A8 (body)
+- White text: #FFFFFF
+- Page canvas: #1A1D2E (body background)
+
+# Fonts
+- English titles: 'Raleway' 700/800 (Google Fonts)
+- Korean: 'KoPub Dotum' → web fallback 'Noto Sans KR' 400/500/700
+- English numbers/step: 'Montserrat' 800 (Google Fonts)
+- English body/caption: 'Open Sans' 400 (Google Fonts)
+- Font Awesome 6 Free (icons)
+- Google Fonts import example: @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@700;800&family=Montserrat:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&family=Open+Sans:wght@400;500&display=swap');
+
+# Document structure
+- <head>: charset, viewport, title, Google Fonts, Font Awesome 6, <style>…</style>
+- <body>: background: linear-gradient(180deg, #0B0E1A 0%, #101530 60%, #0D1225 100%); min-height: 100vh; display: grid; place-items: center; padding: 40px 0; gap: 32px;
+- Each slide: <div class="slide-container"> width: 1280px; height: 720px; position: relative; overflow: hidden; background: linear-gradient(160deg, #0B0E1A 0%, #101530 55%, #0D1225 100%); box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+
+# Slide layout (top to bottom)
+- Use [A],[B],[C],[D] as main elements; [E],[F],[H] optionally when they fit. **If there are multiple content areas, stack them with [H] only. No 2-column layout.**
+  [A] Label (.slide-label) at top; margin-bottom: 4px; font: Raleway 700, 18px; color: #4F8CFF; letter-spacing: 3px; text-transform: uppercase; e.g. "EXECUTIVE SUMMARY", "HOW IT WORKS"
+  [B] Headline (.slide-headline) font: Noto Sans KR 700, 38–42px; color: #FFFFFF; margin-bottom: 10px; highlight keywords with <span style="color:#4F8CFF">…</span>
+  [C] Subhook (.slide-subhook) font: Noto Sans KR 400, 18px; color: #8090A8; margin-bottom: 20px; line-height: 1.5;
+  [D] Divider (.slide-divider) width: 100%; height: 1px; background: linear-gradient(90deg, rgba(79,140,255,0) 0%, rgba(79,140,255,0.4) 50%, rgba(79,140,255,0) 100%); margin-bottom: 24px;
+  [H] Content blocks vertical (.content-block) **If a slide has multiple sections, use this block only, stacked top to bottom. No 2-column.** .content-block { margin-bottom: 28px; } .content-block .block-title { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 22px; color: #FFFFFF; margin-bottom: 12px; } .content-block .block-body { font-family: 'Noto Sans KR', 'Open Sans', sans-serif; font-weight: 400; font-size: 17px; color: #E2E8F0; line-height: 1.65; } .content-block .block-body ul { margin: 8px 0 0 20px; padding: 0; } .content-block .block-body li { margin-bottom: 6px; } e.g. "Action & executive decision point" → .block-title, body below → .block-body; then "Strategy overview", "Core problem", etc. each as .content-block.
+  [E] 3-column step grid (.step-grid) display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; flex: 1; each card (.step-card): background: #161B2E; border-radius: 16px; padding: 28px 24px; border: 1px solid rgba(accent, 0.25); display: flex; flex-direction: column; gap: 8px; .step-number: Montserrat 800, 52px; .step-subtitle: Montserrat 700, 18px; .step-title: Noto Sans KR 700, 20px; .step-desc: Noto Sans KR 400 / Open Sans 400, 16px; Step 01 → #4F8CFF, Step 02 → #00D4AA, Step 03 → #A78BFA
+  [F] Arrow (.step-arrow) between cards: <div class="step-arrow">→</div> color: rgba(79,140,255,0.5); font-size: 24px; align-self: center;
+
+# Common styles (must be in <style>)
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', 'Open Sans', sans-serif; }
+.slide-container { padding: 48px 60px 80px; display: flex; flex-direction: column; }
+.content-block { margin-bottom: 28px; }
+.content-block .block-title { font-family: 'Noto Sans KR', sans-serif; font-weight: 700; font-size: 22px; color: #FFFFFF; margin-bottom: 12px; }
+.content-block .block-body { font-family: 'Noto Sans KR', 'Open Sans', sans-serif; font-weight: 400; font-size: 17px; color: #E2E8F0; line-height: 1.65; }
+.content-block .block-body ul { margin: 8px 0 0 20px; padding: 0; }
+.content-block .block-body li { margin-bottom: 6px; }
+.slide-container::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 20% 50%, rgba(79,140,255,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.04) 0%, transparent 50%); pointer-events: none; }
+.step-card:hover { transform: translateY(-4px); transition: transform 0.2s ease; border-color: rgba(79,140,255,0.5); }
+
+# Output requirements
+1. Follow the structure, class names, colors, and fonts above. **If a slide has multiple content areas, stack them with .content-block only; do not use 2-column layout.**
+2. Analyze [Source Data] and fill slide label, headline, subhook, each content-block (block-title, block-body), step cards.
+3. For multiple slides, repeat .slide-container and append.
+4. Minimize inline styles — put all styles in a <style> block.
+5. Output the complete HTML in a code block.
+
+[Source Data]
+(Paste data to analyze here)`;
 
 /** 위키 붙여넣기용 — wiki 템플릿 (테스트케이스/개발피처에서도 사용) */
 export const WIKI_STYLE_GUIDE = `[위키 붙여넣기용 HTML 형식 — 스타일 가이드]
@@ -550,16 +640,16 @@ export const PREFORMAT_INSTRUCTION = `[Preformat — 템플릿 자동 설계 모
 2) **완성 HTML:** 이어서 \`\`\`html 로 시작하는 블록에, 설계한 형식에 맞춘 최종 HTML 보고서 전체만 출력.
 두 블록만 순서대로 출력하라.`;
 
-/** HTML 템플릿 ID별 본문 반환 (getTemplateForApi에서 사용). pptx는 빈 문자열이므로 호출하지 않음. */
-export type HtmlTemplateIdForContent = 'default' | 'phase1' | 'presentation2' | 'wiki' | 'preformat';
-export function getTemplateContentById(id: HtmlTemplateIdForContent): string {
+/** HTML 템플릿 ID별 본문 반환 (getTemplateForApi에서 사용). pptx는 빈 문자열이므로 호출하지 않음. lang이 'en'이면 presentation2는 영문 가이드 반환. */
+export type HtmlTemplateIdForContent = 'phase1' | 'presentation2' | 'wiki' | 'preformat';
+export function getTemplateContentById(id: HtmlTemplateIdForContent, lang?: PromptLang): string {
+  if (id === 'presentation2' && lang === 'en') return PRESENTATION2_STYLE_GUIDE_EN;
   switch (id) {
-    case 'default': return DEFAULT_HTML_STYLE_GUIDE;
     case 'phase1': return PHASE1_STYLE_GUIDE;
     case 'presentation2': return PRESENTATION2_STYLE_GUIDE;
     case 'wiki': return WIKI_STYLE_GUIDE;
     case 'preformat': return PREFORMAT_INSTRUCTION;
-    default: return DEFAULT_HTML_STYLE_GUIDE;
+    default: return PHASE1_STYLE_GUIDE;
   }
 }
 
@@ -694,8 +784,7 @@ export function getReportGenerationConfig(
     };
   }
   const editablePart = reportType === 'team' ? teamEditable : executiveEditable;
-  const htmlFixed = reportType === 'team' ? HTML_FIXED_TEAM : HTML_FIXED_EXECUTIVE;
-  const SYSTEM_PROMPT = editablePart + htmlFixed;
+  const SYSTEM_PROMPT = editablePart;
   const isPreformat = templateId === 'preformat';
   const templateGuidance = isPreformat ? '' : TEMPLATE_INSTRUCTION_STYLE_GUIDE;
   const label = isPreformat ? '[Preformat — 템플릿 자동 설계 지시]' : '[HTML 형식 스타일 가이드]';
@@ -717,8 +806,8 @@ ${templateGuidance}
   };
 }
 
-/** getTemplateForApi: pptx/testcases/features는 빈 문자열(호출측에서 전용 폴백 사용), 나머지는 getTemplateContentById 위임. */
-export function getTemplateForApi(templateId: HtmlTemplateId): string {
+/** getTemplateForApi: pptx/testcases/features는 빈 문자열(호출측에서 전용 폴백 사용), 나머지는 getTemplateContentById 위임. lang 전달 시 presentation2는 한/영 구분. */
+export function getTemplateForApi(templateId: HtmlTemplateId, lang?: PromptLang): string {
   if (templateId === 'pptx' || templateId === 'testcases' || templateId === 'features') return '';
-  return getTemplateContentById(templateId as HtmlTemplateIdForContent);
+  return getTemplateContentById(templateId as HtmlTemplateIdForContent, lang);
 }

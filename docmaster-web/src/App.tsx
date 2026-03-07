@@ -8,7 +8,7 @@ import { UploadZone } from './components/UploadZone';
 import { ReportViewer } from './components/ReportViewer';
 import { ParsedResultPanel } from './components/ParsedResultPanel';
 import { LoadingPopup } from './components/LoadingPopup';
-import { generateReportClient, generateRefinedMarkdownClient, generateHtmlFromMarkdownClient, generateCustomizationQuestionsFromDraftClient, refineMarkdownWithAnswersClient, type ReportUsage, type HtmlTemplateId, type ReportType, type CustomizationQuestion } from './lib/llmClient';
+import { generateReportClient, generateRefinedMarkdownClient, generateHtmlFromMarkdownClient, generateCustomizationQuestionsFromDraftClient, refineMarkdownWithAnswersClient, getReportLoadingMessagesFromRawMd, type ReportUsage, type HtmlTemplateId, type ReportType, type CustomizationQuestion } from './lib/llmClient';
 import { buildAndDownloadPptx } from './lib/pptxExport';
 import { translations } from './lib/translations';
 import type { Language } from './lib/translations';
@@ -35,6 +35,7 @@ type AppStep = 'idle' | 'parsing' | 'parsed' | 'generating';
 function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTemplateAdminOpen, setIsTemplateAdminOpen] = useState(false);
+  const [templateListRefreshTrigger, setTemplateListRefreshTrigger] = useState(0);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [hasKeys, setHasKeys] = useState(false);
   const [lang, setLang] = useState<Language>('ko');
@@ -51,10 +52,12 @@ function App() {
   const [reportUsage, setReportUsage] = useState<ReportUsage | null>(null);
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [showKeyRequiredToast, setShowKeyRequiredToast] = useState(false);
-  /** 로딩 팝업: parsing | generating 시 표시, fileName으로 상태 문구에 반영 */
+  /** 로딩 팝업: parsing | generating 시 표시. generating 시 subPhase·liveMessages로 "살아있는" 메시지 지원(실험) */
   const [loadingContext, setLoadingContext] = useState<{
     phase: 'parsing' | 'generating';
     fileName: string;
+    subPhase?: 'refining' | 'writing';
+    liveMessages?: string[];
   } | null>(null);
 
   /** 맞춤 질문 팝업: 정리 md 초안 완료 후 질문 생성 시 설정. 건너뛰기/제출 시 여기 값으로 HTML 생성 진행 */
@@ -145,7 +148,7 @@ function App() {
   // ─── Step 2: parsedMarkdown + reportType + templateId → LLM 보고서 생성 ────────────────
   const handleGenerateReport = async (
     reportType: ReportType,
-    templateId: HtmlTemplateId = 'default',
+    templateId: HtmlTemplateId = 'presentation2',
     highQuality = false
   ) => {
     if (!parsedMarkdown) return;
@@ -159,21 +162,38 @@ function App() {
     }
 
     setAppStep('generating');
-    setLoadingContext({ phase: 'generating', fileName: parsedFileName || '' });
-    console.log('[DocMaster] 보고서 생성 시작', { reportType, templateId, highQuality, useTwoPhase: (reportType === 'executive' || reportType === 'team' || reportType === 'testcases' || reportType === 'features') && templateId !== 'pptx' });
+    const useTwoPhase = (reportType === 'executive' || reportType === 'team' || reportType === 'testcases' || reportType === 'features') && templateId !== 'pptx';
+    const reuseRefinedMd = useTwoPhase && reportMarkdown != null && reportTypeForMarkdown === reportType;
+
+    if (useTwoPhase && reuseRefinedMd) {
+      setLoadingContext({ phase: 'generating', fileName: parsedFileName || '', subPhase: 'writing', liveMessages: t.loadingPopup.writingPhaseMessages });
+    } else if (useTwoPhase) {
+      setLoadingContext({ phase: 'generating', fileName: parsedFileName || '', subPhase: 'refining' });
+      Promise.race([
+        getReportLoadingMessagesFromRawMd(parsedMarkdown, llmProvider, llmKey),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
+      ])
+        .then((msgs) => {
+          setLoadingContext((prev) =>
+            prev && prev.phase === 'generating' ? { ...prev, liveMessages: msgs.length > 0 ? msgs : undefined } : prev
+          );
+        })
+        .catch(() => {});
+    } else {
+      setLoadingContext({ phase: 'generating', fileName: parsedFileName || '' });
+    }
+
+    console.log('[DocMaster] 보고서 생성 시작', { reportType, templateId, highQuality, useTwoPhase });
     try {
       // 기획서 기반 보고서(경영진/실무) + pptx 아님 → 2단계 파이프라인 (정리 md → HTML)
-      const useTwoPhase = (reportType === 'executive' || reportType === 'team' || reportType === 'testcases' || reportType === 'features') && templateId !== 'pptx';
-
       if (useTwoPhase) {
         // 5번: 이미 2차 가공 md가 있고, 같은 보고 유형이면 → HTML 포맷만 다시 생성(정리 md 재생성 안 함)
-        const reuseRefinedMd = reportMarkdown != null && reportTypeForMarkdown === reportType;
         let refinedMd: string;
         let usage1: ReportUsage | undefined;
 
         if (reuseRefinedMd) {
           console.log('[DocMaster] 2단계: 기존 정리 md 사용, HTML만 재생성', { templateId });
-          refinedMd = reportMarkdown;
+          refinedMd = reportMarkdown!;
         } else {
           console.log('[DocMaster] 2단계: 정리 md 생성 중...', { reportType, highQuality });
           const result = await generateRefinedMarkdownClient(
@@ -195,6 +215,11 @@ function App() {
           usage1 = result.usage;
           setReportMarkdown(refinedMd);
           setReportTypeForMarkdown(reportType);
+
+          // 정리 md 완료 → "이제 보고서 작성" 단계 메시지로 전환
+          setLoadingContext((prev) =>
+            prev ? { ...prev, subPhase: 'writing', liveMessages: t.loadingPopup.writingPhaseMessages } : null
+          );
 
           // 맞춤 질문 생성: 경영진/실무만 (테스트케이스·개발피처는 건너뛰고 바로 HTML 생성)
           const isExecutiveOrTeam = reportType === 'executive' || reportType === 'team';
@@ -236,15 +261,28 @@ function App() {
             throw new Error('HTML 생성 결과가 비어 있습니다.');
           }
           setReportHtml(html);
+          // 정리 md(usage1) + HTML(usage2) 모두 합산하여 총 토큰·비용 표시 (모델별 단가로 각각 계산 후 합산)
           const combinedUsage: ReportUsage | undefined =
-            usage1 && usage2
+            usage1 !== undefined && usage2 !== undefined
               ? {
                   inputTokens: usage1.inputTokens + usage2.inputTokens,
                   outputTokens: usage1.outputTokens + usage2.outputTokens,
                   totalTokens: usage1.totalTokens + usage2.totalTokens,
                   estimatedCostUsd: (usage1.estimatedCostUsd ?? 0) + (usage2.estimatedCostUsd ?? 0),
                 }
-              : usage2 ?? usage1;
+              : usage2 !== undefined
+                ? usage2
+                : usage1;
+          if (usage1 !== undefined && usage2 === undefined) {
+            console.warn('[DocMaster] 2단계: HTML 생성 단계에서 usage가 반환되지 않음. 정리 md 비용만 표시됩니다.', { usage1 });
+          }
+          if (import.meta.env?.DEV && combinedUsage) {
+            console.log('[DocMaster] 2단계 사용량 합산 (정리 md + HTML)', {
+              usage1: usage1 ? { inputTokens: usage1.inputTokens, outputTokens: usage1.outputTokens, estimatedCostUsd: usage1.estimatedCostUsd } : null,
+              usage2: usage2 ? { inputTokens: usage2.inputTokens, outputTokens: usage2.outputTokens, estimatedCostUsd: usage2.estimatedCostUsd } : null,
+              combined: combinedUsage,
+            });
+          }
           setReportUsage(combinedUsage ?? null);
           setAppStep('parsed');
           setLoadingContext(null);
@@ -377,7 +415,7 @@ function App() {
     const d = customizationDraft;
     if (!d) return;
     setCustomizationDraft(null);
-    setLoadingContext({ phase: 'generating', fileName: parsedFileName || '' });
+    setLoadingContext({ phase: 'generating', fileName: parsedFileName || '', subPhase: 'writing', liveMessages: t.loadingPopup.writingPhaseMessages });
     (async () => {
       try {
         const { html, usage: usage2 } = await generateHtmlFromMarkdownClient(
@@ -418,7 +456,7 @@ function App() {
     const d = customizationDraft;
     if (!d) return;
     setCustomizationDraft(null);
-    setLoadingContext({ phase: 'generating', fileName: parsedFileName || '' });
+    setLoadingContext({ phase: 'generating', fileName: parsedFileName || '', subPhase: 'writing', liveMessages: t.loadingPopup.writingPhaseMessages });
     (async () => {
       try {
         const { markdown: finalMd, usage: uRefine } = await refineMarkdownWithAnswersClient(
@@ -743,6 +781,8 @@ function App() {
                   parsedFileId={parsedFileId}
                   lang={lang}
                   bestPracticeId={selectedBestPractice}
+                  apiBaseUrl={API_BASE_URL}
+                  templateListRefreshTrigger={templateListRefreshTrigger}
                   onGenerateReport={handleGenerateReport}
                   onReset={handleReset}
                   onReportTypeChange={handleReportTypeChange}
@@ -774,6 +814,8 @@ function App() {
         <LoadingPopup
           phase={loadingContext.phase}
           fileName={loadingContext.fileName}
+          subPhase={loadingContext.subPhase}
+          liveMessages={loadingContext.liveMessages}
           lang={lang}
         />
       )}
@@ -793,7 +835,11 @@ function App() {
       {/* Template Admin Modal (HTML 템플릿 편집) */}
       <TemplateAdminModal
         open={isTemplateAdminOpen}
-        onClose={() => setIsTemplateAdminOpen(false)}
+        onClose={() => {
+          setIsTemplateAdminOpen(false);
+          setTemplateListRefreshTrigger((t) => t + 1);
+        }}
+        onTemplateAdded={() => setTemplateListRefreshTrigger((t) => t + 1)}
         apiBaseUrl={API_BASE_URL}
         lang={lang}
       />

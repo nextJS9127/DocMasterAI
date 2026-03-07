@@ -67,7 +67,7 @@ TEMPLATES_DIR = Path("/tmp/docmaster_templates") if os.environ.get("VERCEL") els
 TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 
 # 허용된 템플릿 ID (path traversal 방지). pptx는 API에서 제외(별도 처리). testcases/features는 어드민에서 편집 가능.
-ALLOWED_TEMPLATE_IDS = {"default", "phase1", "presentation2", "wiki", "preformat", "testcases", "features"}
+ALLOWED_TEMPLATE_IDS = {"phase1", "presentation2", "wiki", "preformat", "testcases", "features"}
 # 추가 템플릿 ID: 영문·숫자·하이픈·언더스코어만 허용 (최대 64자)
 SAFE_TEMPLATE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 

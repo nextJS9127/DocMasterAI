@@ -8,11 +8,16 @@
  * - "다른 파일 분석" 리셋 링크
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Download, FileText, RefreshCw, ChevronRight, Loader2, FileOutput, FileDown } from 'lucide-react';
 import { translations } from '../lib/translations';
 import type { Language } from '../lib/translations';
 import type { HtmlTemplateId, ReportUsage, ReportType } from '../lib/llmClient';
+import {
+    listTemplatesFromApi,
+    getTemplatesForCategory,
+    TEMPLATE_TITLE_STORAGE_KEY,
+} from '../lib/llmClient';
 import type { BestPracticeId } from './BestPracticeCards';
 
 interface ParsedResultPanelProps {
@@ -21,6 +26,9 @@ interface ParsedResultPanelProps {
     parsedFileId: string | null;
     lang: Language;
     bestPracticeId: BestPracticeId;
+    apiBaseUrl: string;
+    /** 템플릿 관리 모달에서 추가/저장 후 갱신용. 값이 바뀌면 목록 재요청 */
+    templateListRefreshTrigger?: number;
     onGenerateReport: (reportType: ReportType, templateId: HtmlTemplateId, highQuality?: boolean) => Promise<void>;
     onReset: () => void;
     /** 경영진용↔실무용 선택 변경 시 호출. 정리 md를 비우고 다음 생성 시 해당 유형으로 다시 만들도록 함 */
@@ -37,6 +45,8 @@ export function ParsedResultPanel({
     parsedFileId: _parsedFileId,
     lang,
     bestPracticeId,
+    apiBaseUrl,
+    templateListRefreshTrigger = 0,
     onGenerateReport,
     onReset,
     onReportTypeChange,
@@ -46,20 +56,55 @@ export function ParsedResultPanel({
     onViewReport,
 }: ParsedResultPanelProps) {
     const [reportType, setReportType] = useState<'executive' | 'team'>('executive');
-    const [htmlTemplateId, setHtmlTemplateId] = useState<HtmlTemplateId>('default');
+    const [htmlTemplateId, setHtmlTemplateId] = useState<HtmlTemplateId>('presentation2');
+    const [featuresTemplateId, setFeaturesTemplateId] = useState<string>('features');
+    const [testcasesTemplateId, setTestcasesTemplateId] = useState<string>('testcases');
     const [highQuality, setHighQuality] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [templateList, setTemplateList] = useState<{ id: string; exists: boolean }[]>([]);
     const t = translations[lang];
     const tp = t.parsedPanel;
     const bp = t.bestPractice;
+    const ta = t.templateAdmin;
+
+    useEffect(() => {
+        if (!apiBaseUrl) return;
+        listTemplatesFromApi(apiBaseUrl).then(setTemplateList).catch(() => setTemplateList([]));
+    }, [apiBaseUrl, templateListRefreshTrigger]);
+
+    const reportTemplateIds = getTemplatesForCategory(templateList, 'report');
+    const devTemplateIds = getTemplatesForCategory(templateList, 'dev');
+    const tcTemplateIds = getTemplatesForCategory(templateList, 'testcases');
+
+    useEffect(() => {
+        if (reportTemplateIds.length > 0 && !reportTemplateIds.includes(htmlTemplateId)) setHtmlTemplateId(reportTemplateIds[0] as HtmlTemplateId);
+    }, [reportTemplateIds.join(','), htmlTemplateId]);
+    useEffect(() => {
+        if (devTemplateIds.length > 0 && !devTemplateIds.includes(featuresTemplateId)) setFeaturesTemplateId(devTemplateIds[0]);
+    }, [devTemplateIds.join(','), featuresTemplateId]);
+    useEffect(() => {
+        if (tcTemplateIds.length > 0 && !tcTemplateIds.includes(testcasesTemplateId)) setTestcasesTemplateId(tcTemplateIds[0]);
+    }, [tcTemplateIds.join(','), testcasesTemplateId]);
+
+    function getTemplateOptionLabel(id: string, category: 'report' | 'dev' | 'testcases'): string {
+        const customTitle = typeof localStorage !== 'undefined' ? localStorage.getItem(TEMPLATE_TITLE_STORAGE_KEY + id)?.trim() : null;
+        if (customTitle) return customTitle;
+        if (category === 'report') {
+            const labels: Record<string, string> = { phase1: tp.htmlFormatPhase1, presentation2: tp.htmlFormatPresentation, wiki: tp.htmlFormatWiki, preformat: tp.htmlFormatPreformat, pptx: tp.htmlFormatPptx };
+            return labels[id] ?? id;
+        }
+        if (id === 'features') return ta.templateLabelFeatures as string;
+        if (id === 'testcases') return ta.templateLabelTestcases as string;
+        return id;
+    }
 
     const handleGenerate = async () => {
         setIsGenerating(true);
         try {
             if (bestPracticeId === 'features') {
-                await onGenerateReport('features', 'features');
+                await onGenerateReport('features', featuresTemplateId as HtmlTemplateId);
             } else if (bestPracticeId === 'testcases') {
-                await onGenerateReport('testcases', 'testcases');
+                await onGenerateReport('testcases', testcasesTemplateId as HtmlTemplateId);
             } else {
                 await onGenerateReport(reportType, htmlTemplateId, highQuality);
             }
@@ -158,10 +203,13 @@ export function ParsedResultPanel({
                         <span className="text-xs text-emerald-600 font-mono">
                             {reportUsage ? (
                                 <>
-                                    {reportUsage.totalTokens.toLocaleString()} {tp.tokensLabel}
-                                    {reportUsage.estimatedCostUsd != null && !Number.isNaN(reportUsage.estimatedCostUsd) && (
-                                        <> · $ {reportUsage.estimatedCostUsd < 0.01 ? reportUsage.estimatedCostUsd.toFixed(4) : reportUsage.estimatedCostUsd.toFixed(2)}</>
-                                    )}
+                                    <span title={tp.usageTotalHint}>
+                                        {reportUsage.totalTokens.toLocaleString()} {tp.tokensLabel}
+                                        {reportUsage.estimatedCostUsd != null && !Number.isNaN(reportUsage.estimatedCostUsd) && (
+                                            <> · $ {reportUsage.estimatedCostUsd < 0.01 ? reportUsage.estimatedCostUsd.toFixed(4) : reportUsage.estimatedCostUsd.toFixed(2)}</>
+                                        )}
+                                    </span>
+                                    <span className="block text-[10px] text-emerald-500/90 mt-0.5">{tp.usageTotalHint}</span>
                                 </>
                             ) : (
                                 tp.usageLabelNone
@@ -209,12 +257,9 @@ export function ParsedResultPanel({
                                 disabled={isGenerating}
                                 className="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-60"
                             >
-                                <option value="default">{tp.htmlFormatDefault}</option>
-                                <option value="phase1">{tp.htmlFormatPhase1}</option>
-                                <option value="presentation2">{tp.htmlFormatPresentation}</option>
-                                <option value="wiki">{tp.htmlFormatWiki}</option>
-                                <option value="preformat">{tp.htmlFormatPreformat}</option>
-                                <option value="pptx">{tp.htmlFormatPptx}</option>
+                                {reportTemplateIds.map((id) => (
+                                    <option key={id} value={id}>{getTemplateOptionLabel(id, 'report')}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -283,9 +328,24 @@ export function ParsedResultPanel({
                 )}
 
                 {(bestPracticeId === 'features' || bestPracticeId === 'testcases') && (
-                    <p className="text-sm text-slate-600 mb-4">
-                        {bestPracticeId === 'features' ? bp.featuresHowTo : bp.testcasesHowTo}
-                    </p>
+                    <>
+                        <div className="mb-4">
+                            <label className="block text-xs font-semibold text-slate-600 mb-2">{tp.htmlFormatLabel}</label>
+                            <select
+                                value={bestPracticeId === 'features' ? featuresTemplateId : testcasesTemplateId}
+                                onChange={(e) => bestPracticeId === 'features' ? setFeaturesTemplateId(e.target.value) : setTestcasesTemplateId(e.target.value)}
+                                disabled={isGenerating}
+                                className="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-60"
+                            >
+                                {(bestPracticeId === 'features' ? devTemplateIds : tcTemplateIds).map((id) => (
+                                    <option key={id} value={id}>{getTemplateOptionLabel(id, bestPracticeId === 'features' ? 'dev' : 'testcases')}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-4">
+                            {bestPracticeId === 'features' ? bp.featuresHowTo : bp.testcasesHowTo}
+                        </p>
+                    </>
                 )}
 
                 {/* 생성 버튼 */}
