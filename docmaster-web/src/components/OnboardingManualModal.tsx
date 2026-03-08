@@ -122,6 +122,7 @@ export function OnboardingManualModal({ onClose, lang }: OnboardingManualModalPr
                 </li>
               ))}
             </ul>
+            <p className="text-sm text-slate-500 italic mt-3">{t.guideHtmlFailTip}</p>
           </section>
         </div>
 

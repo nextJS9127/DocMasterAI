@@ -8,3 +8,16 @@
 | **02-infrastructure-and-tech-spec-en.md** | Tech stack, libraries, folder structure (English) |
 | **03-source-code-analysis-ko.md** | 소스 코드 상세 분석 (한글) |
 | **03-source-code-analysis-en.md** | Source code analysis (English) |
+| **04-best-practices-and-prompts-ko.md** | 베스트 프랙티스(기획 보고서/개발 피처/테스트 케이스)·프롬프트 설계 |
+| **05-report-flow-analysis-ko.md** | 기획서 기반 보고서 2단계 파이프라인·템플릿 변수·검증 흐름 |
+| **06-md-quality-n-rounds-ko.md** | 정리 md 품질·N회차 검토 |
+| **07-html-template-handling-ko.md** | HTML 템플릿 처리 방식(변수 채우기 vs 스타일 가이드) |
+| **08-customization-question-flow-ko.md** | 맞춤 질문(의도 반영) 플로우 |
+| **08-refined-md-latency-ko.md** | 정리 md 레이턴시 |
+| **09-faq-reasoning-html-slides-ko.md** | FAQ: reasoning, HTML, 슬라이드 |
+| **10-report-generation-latency-ko.md** | 보고서 생성 지연 원인·개선 방안 |
+| **11-refined-md-vs-html-variables-ko.md** | 정리 md vs HTML 변수 |
+| **user-manual.html** | 사용자 메뉴얼 (HTML, 기획자·사용자 대상) |
+| **GITHUB_SETUP.md** | GitHub 설정 |
+
+앱 내 **도움말 → 온보딩 메뉴얼**과 **user-manual.html**은 동일한 이용 방법·정리 md 재활용·HTML 실패 시 정리 md 다운로드 안내를 반영합니다.

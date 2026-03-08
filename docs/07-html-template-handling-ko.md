@@ -29,12 +29,13 @@
 ## 3. 코드 상에서의 구분
 
 - **템플릿 내용 가져오기**  
-  **`prompts/executiveTeam.ts`**에 정의된 `getTemplateForApi(templateId)` (및 `getTemplateContentById`). `llmClient.ts`는 이를 import해 사용·re-export함.
+  **경영진/실무 보고서**: **`prompts/executiveTeam.ts`**에 정의된 `getTemplateForApi(templateId)` (및 `getTemplateContentById`). `llmClient.ts`는 이를 import해 사용·re-export함.
   - `default` → `DEFAULT_TEMPLATE` (전체 HTML 문자열)
   - `phase1` → `PHASE1_STYLE_GUIDE` (스타일 가이드 텍스트)
   - `presentation2` → `PRESENTATION2_STYLE_GUIDE`
   - `wiki` → `WIKI_STYLE_GUIDE`
   - `preformat` → `PREFORMAT_INSTRUCTION` (형식 자동 설계 지시)
+  **테스트 케이스/개발 피처**: `apiBaseUrl`이 있으면 `GET /api/templates/testcases`, `GET /api/templates/features` 호출. **404 또는 실패 시** `getTestcasesTemplateContent()` / `getFeaturesTemplateContent()` 로컬 기본값 사용. (`prompts/testcases.ts`, `prompts/features.ts`)
 
 - **LLM에게 넘길 때**  
   `generateHtmlFromMarkdownClient()` 안에서:
