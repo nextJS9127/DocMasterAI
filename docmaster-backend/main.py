@@ -63,8 +63,8 @@ NORMALIZE_MD = os.environ.get("NORMALIZE_MD", "true").lower() in ("1", "true", "
 OUTPUTS_DIR = Path("/tmp/docmaster_outputs") if os.environ.get("VERCEL") else Path(__file__).parent / "outputs"
 OUTPUTS_DIR.mkdir(exist_ok=True)
 
-# HTML 템플릿 저장 디렉토리 (어드민에서 편집한 템플릿 저장). Vercel에서는 /tmp 사용 시 요청 간 유지되지 않음.
-TEMPLATES_DIR = Path("/tmp/docmaster_templates") if os.environ.get("VERCEL") else Path(__file__).parent / "data" / "templates"
+# HTML 템플릿: 항상 번들된 data/templates 사용(읽기). Vercel에서도 배포된 파일을 사용해 exists/GET 동작.
+TEMPLATES_DIR = Path(__file__).parent / "data" / "templates"
 TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 
 # 허용된 템플릿 ID (path traversal 방지). pptx는 API에서 제외(별도 처리). testcases/features는 어드민에서 편집 가능.
