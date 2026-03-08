@@ -121,6 +121,7 @@ function App() {
       });
 
       if (!response.ok) {
+        if (response.status === 413) throw new Error(t.errors.payloadTooLarge413);
         const errorData = await response.json().catch(() => ({}));
         const detail = errorData.detail || `파싱 서버 오류 (${response.status}). 요청 URL: ${parseUrl}`;
         throw new Error(detail);

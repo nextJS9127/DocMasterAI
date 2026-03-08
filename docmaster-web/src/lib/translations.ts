@@ -161,6 +161,8 @@ export const translations = {
             rateLimit429: 'API 한도에 도달했습니다 (429).\n\n• 요청 빈도/사용량 한도: 잠시 후 다시 시도하거나 다른 LLM을 선택해 보세요.\n• 인풋이 너무 길 때도 429가 날 수 있으니, 문서가 매우 길면 짧게 나눠 보세요.',
             overloaded503: '선택한 모델(Google Gemini 등)이 일시적으로 과부하 상태입니다 (503).\n\n• 잠시 후 다시 시도해 보세요.\n• 계속되면 [설정]에서 다른 LLM(예: OpenAI, Claude)으로 바꿔 보세요.',
             reportGenerateFailed: '보고서 생성 중 오류가 발생했습니다',
+            payloadTooLarge413: '버셀 환경상 요청 크기가 서버 제한(약 4.5MB)을 초과했습니다. 업로드 파일은 4MB 이하로 올려 주세요.',
+            fileTooLarge: '파일이 너무 큽니다. 배포 서버 제한으로 4MB 이하만 업로드할 수 있습니다.',
         },
         sidebar: {
             capabilities: '핵심 역량',
@@ -423,6 +425,8 @@ export const translations = {
             rateLimit429: 'API rate limit reached (429).\n\n• Try again later or select a different LLM.\n• Very long input can also cause 429; try splitting the document.',
             overloaded503: 'The selected model (e.g. Google Gemini) is temporarily overloaded (503).\n\n• Please try again later.\n• If it continues, switch to another LLM (e.g. OpenAI, Claude) in Settings.',
             reportGenerateFailed: 'An error occurred while generating the report',
+            payloadTooLarge413: 'Request size exceeds server limit (about 4.5MB) in this Vercel deployment. Please upload a file under 4MB.',
+            fileTooLarge: 'File is too large. Only files under 4MB can be uploaded due to server limits.',
         },
         sidebar: {
             capabilities: 'Core Capabilities',

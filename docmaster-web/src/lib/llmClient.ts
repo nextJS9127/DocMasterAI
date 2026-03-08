@@ -218,6 +218,9 @@ export async function saveTemplateToApi(apiBaseUrl: string, templateId: string, 
         body: JSON.stringify({ content }),
     });
     if (!res.ok) {
+        if (res.status === 413) {
+            throw new Error('버셀 환경상 요청 크기가 서버 제한(약 4.5MB)을 초과했습니다. 내용을 줄이거나 나눠 저장해 주세요.');
+        }
         const err = await res.json().catch(() => ({ detail: res.statusText }));
         throw new Error((err as { detail?: string }).detail || '저장 실패');
     }
