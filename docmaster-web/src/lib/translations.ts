@@ -156,7 +156,7 @@ export const translations = {
         errors: {
             apiKeyRequired: 'LLM API Key가 설정되지 않았습니다. 우측 상단 [Key 설정]에서 입력해주세요.',
             extractionFailed: '문서 추출 중 오류가 발생했습니다',
-            refinedContentFailed: '정리된 보고서 내용을 생성하지 못했습니다.',
+            refinedContentFailed: '정리된 보고서 내용을 생성하지 못했습니다. 선택한 모델이 응답을 반환하지 않았을 수 있습니다. 다른 모델(예: GPT-4o)을 선택하거나, 문서를 짧게 나눈 뒤 다시 시도해 보세요.',
             contextTooLong: '추출된 문서가 너무 깁니다 (컨텍스트 길이 초과).\n\n• 더 짧은 문서로 시도하거나, PDF/PPT 페이지 수를 줄여 보세요.\n• 또는 설정에서 다른 LLM을 선택해 보세요.',
             rateLimit429: 'API 한도에 도달했습니다 (429).\n\n• 요청 빈도/사용량 한도: 잠시 후 다시 시도하거나 다른 LLM을 선택해 보세요.\n• 인풋이 너무 길 때도 429가 날 수 있으니, 문서가 매우 길면 짧게 나눠 보세요.',
             overloaded503: '선택한 모델(Google Gemini 등)이 일시적으로 과부하 상태입니다 (503).\n\n• 잠시 후 다시 시도해 보세요.\n• 계속되면 [설정]에서 다른 LLM(예: OpenAI, Claude)으로 바꿔 보세요.',
@@ -177,7 +177,8 @@ export const translations = {
             developerTitle: '개발자 정보',
             developerName: '성진수',
             developerContact: '기능 문의',
-            developerEmail: 'jins1024@gmail.com'
+            developerEmail: 'jins1024@gmail.com',
+            developerPortfolioConfirm: '개발자의 다른 포트폴리오 사이트로 이동합니다.',
         },
         onboarding: {
             menuLabel: '온보딩 메뉴얼',
@@ -254,6 +255,7 @@ export const translations = {
             tipLabel: '💡 이용 팁',
             waitParsing: '잠시만 기다려주세요 (최대 1~2분 소요)',
             waitGenerating: '잠시만 기다려주세요 (문서·옵션에 따라 1~3분 걸릴 수 있어요)',
+            pageProgressMessage: '추출된 {total}페이지 중 {current}페이지 정리 중...',
         },
         customizationModal: {
             title: '맞춤 질문',
@@ -420,7 +422,7 @@ export const translations = {
         errors: {
             apiKeyRequired: 'LLM API key is not set. Please enter it in [Key] at the top right.',
             extractionFailed: 'An error occurred while extracting the document',
-            refinedContentFailed: 'Failed to generate refined report content.',
+            refinedContentFailed: 'Failed to generate refined report content. The selected model may not have returned a response. Try another model (e.g. GPT-4o) or shorten the document and try again.',
             contextTooLong: 'The extracted document is too long (context length exceeded).\n\n• Try a shorter document or reduce PDF/PPT pages.\n• Or select a different LLM in Settings.',
             rateLimit429: 'API rate limit reached (429).\n\n• Try again later or select a different LLM.\n• Very long input can also cause 429; try splitting the document.',
             overloaded503: 'The selected model (e.g. Google Gemini) is temporarily overloaded (503).\n\n• Please try again later.\n• If it continues, switch to another LLM (e.g. OpenAI, Claude) in Settings.',
@@ -441,7 +443,8 @@ export const translations = {
             developerTitle: 'Developer',
             developerName: 'Sung Jinsu',
             developerContact: 'Contact',
-            developerEmail: 'jins1024@gmail.com'
+            developerEmail: 'jins1024@gmail.com',
+            developerPortfolioConfirm: 'Go to developer\'s other portfolio site?',
         },
         onboarding: {
             menuLabel: 'Onboarding Manual',
@@ -517,6 +520,7 @@ export const translations = {
             tipLabel: '💡 Tip',
             waitParsing: 'Please wait (may take up to 1–2 minutes)',
             waitGenerating: 'Please wait (may take 1–3 min depending on document and options)',
+            pageProgressMessage: 'Organizing page {current} of {total}...',
         },
         customizationModal: {
             title: 'Customization',

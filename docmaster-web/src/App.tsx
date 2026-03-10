@@ -8,7 +8,7 @@ import { UploadZone } from './components/UploadZone';
 import { ReportViewer } from './components/ReportViewer';
 import { ParsedResultPanel } from './components/ParsedResultPanel';
 import { LoadingPopup } from './components/LoadingPopup';
-import { generateReportClient, generateRefinedMarkdownClient, generateHtmlFromMarkdownClient, generateCustomizationQuestionsFromDraftClient, refineMarkdownWithAnswersClient, getReportLoadingMessagesFromRawMd, type ReportUsage, type HtmlTemplateId, type ReportType, type CustomizationQuestion } from './lib/llmClient';
+import { generateReportClient, generateRefinedMarkdownClient, generateHtmlFromMarkdownClient, generateCustomizationQuestionsFromRawClient, generateRefinedMarkdownWithChoicesClient, getReportLoadingMessagesFromRawMd, type ReportUsage, type HtmlTemplateId, type ReportType, type CustomizationQuestion } from './lib/llmClient';
 import { buildAndDownloadPptx } from './lib/pptxExport';
 import { translations } from './lib/translations';
 import type { Language } from './lib/translations';
@@ -58,11 +58,13 @@ function App() {
     fileName: string;
     subPhase?: 'refining' | 'writing';
     liveMessages?: string[];
+    pageProgress?: { current: number; total: number };
   } | null>(null);
 
-  /** 맞춤 질문 팝업: 정리 md 초안 완료 후 질문 생성 시 설정. 건너뛰기/제출 시 여기 값으로 HTML 생성 진행 */
+  /** 맞춤 질문 팝업: 질문 먼저(원문 기반) 후 선택 시 정리 md 1회 생성. rawMarkdown 필수, refinedMd는 건너뛰기/반영 시점에만 생성 */
   const [customizationDraft, setCustomizationDraft] = useState<{
-    refinedMd: string;
+    rawMarkdown: string;
+    refinedMd?: string;
     questions: CustomizationQuestion[];
     usage1?: ReportUsage;
     templateId: HtmlTemplateId;
@@ -149,7 +151,7 @@ function App() {
   // ─── Step 2: parsedMarkdown + reportType + templateId → LLM 보고서 생성 ────────────────
   const handleGenerateReport = async (
     reportType: ReportType,
-    templateId: HtmlTemplateId = 'presentation2',
+    templateId: HtmlTemplateId = 'phase1',
     highQuality = false
   ) => {
     if (!parsedMarkdown) return;
@@ -196,13 +198,45 @@ function App() {
           console.log('[DocMaster] 2단계: 기존 정리 md 사용, HTML만 재생성', { templateId });
           refinedMd = reportMarkdown!;
         } else {
+          const isExecutiveOrTeam = reportType === 'executive' || reportType === 'team';
+          // 경영진/실무: 원문으로 맞춤 질문만 먼저 생성(빠른 모델). 질문이 있으면 팝업만 띄우고 정리 md는 나중에(제출/건너뛰기 시) 1회만 생성
+          if (isExecutiveOrTeam) {
+            const { questions, usage: qUsage } = await generateCustomizationQuestionsFromRawClient(
+              parsedMarkdown,
+              reportType,
+              llmProvider,
+              llmKey
+            );
+            if (questions.length > 0) {
+              setCustomizationDraft({
+                rawMarkdown: parsedMarkdown,
+                questions,
+                usage1: qUsage,
+                templateId,
+                reportType,
+                llmProvider,
+                llmKey,
+                highQuality,
+                apiBaseUrl: API_BASE_URL,
+              });
+              setLoadingContext(null);
+              console.log('[DocMaster] 맞춤 질문 팝업 표시 (원문 기반)', { questionCount: questions.length });
+              return;
+            }
+          }
+
           console.log('[DocMaster] 2단계: 정리 md 생성 중...', { reportType, highQuality });
           const result = await generateRefinedMarkdownClient(
             parsedMarkdown,
             llmProvider,
             llmKey,
             reportType,
-            highQuality
+            highQuality,
+            (current, total) => {
+              setLoadingContext((prev) =>
+                prev ? { ...prev, pageProgress: { current, total } } : null
+              );
+            }
           );
           if (!result.markdown?.trim()) {
             console.error('정리 md 생성 실패: 결과가 비어 있음', {
@@ -222,27 +256,7 @@ function App() {
             prev ? { ...prev, subPhase: 'writing', liveMessages: t.loadingPopup.writingPhaseMessages } : null
           );
 
-          // 맞춤 질문 생성: 경영진/실무만 (테스트케이스·개발피처는 건너뛰고 바로 HTML 생성)
-          const isExecutiveOrTeam = reportType === 'executive' || reportType === 'team';
-          if (isExecutiveOrTeam) {
-            const { questions } = await generateCustomizationQuestionsFromDraftClient(refinedMd, reportType, llmProvider, llmKey);
-            if (questions.length > 0) {
-              setCustomizationDraft({
-                refinedMd,
-                questions,
-                usage1,
-                templateId,
-                reportType,
-                llmProvider,
-                llmKey,
-                highQuality,
-                apiBaseUrl: API_BASE_URL,
-              });
-              setLoadingContext(null);
-              console.log('[DocMaster] 맞춤 질문 팝업 표시', { questionCount: questions.length });
-              return;
-            }
-          }
+          // 맞춤 질문은 이미 원문 기준으로 먼저 시도했고, 질문 없으면 여기까지 옴. 추가 질문 생성 없이 바로 HTML로 진행
         }
 
         console.log('[DocMaster] 2단계: 정리 md 완료, HTML 생성 중...', { templateId: reportType === 'testcases' ? 'testcases' : reportType === 'features' ? 'features' : templateId, reportType });
@@ -411,7 +425,7 @@ function App() {
     }
   };
 
-  /** 맞춤 질문 팝업: 건너뛰기 → 초안 그대로 HTML 생성 */
+  /** 맞춤 질문 팝업: 건너뛰기 → 원문으로 정리 md 1회 생성 후 HTML 생성 */
   const handleCustomizationSkip = () => {
     const d = customizationDraft;
     if (!d) return;
@@ -419,8 +433,20 @@ function App() {
     setLoadingContext({ phase: 'generating', fileName: parsedFileName || '', subPhase: 'writing', liveMessages: t.loadingPopup.writingPhaseMessages });
     (async () => {
       try {
+        const { markdown: refinedMd, usage: usage1 } = await generateRefinedMarkdownClient(
+          d.rawMarkdown,
+          d.llmProvider,
+          d.llmKey,
+          d.reportType,
+          d.highQuality
+        );
+        if (!refinedMd?.trim()) {
+          throw new Error(t.errors.refinedContentFailed);
+        }
+        setReportMarkdown(refinedMd);
+        setReportTypeForMarkdown(d.reportType);
         const { html, usage: usage2 } = await generateHtmlFromMarkdownClient(
-          d.refinedMd,
+          refinedMd,
           d.llmProvider,
           d.llmKey,
           d.templateId,
@@ -429,17 +455,15 @@ function App() {
           d.highQuality
         );
         setReportHtml(html);
-        setReportMarkdown(d.refinedMd);
-        setReportTypeForMarkdown(d.reportType);
         setReportUsage(
-          d.usage1 && usage2
+          usage1 && usage2
             ? {
-                inputTokens: d.usage1.inputTokens + usage2.inputTokens,
-                outputTokens: d.usage1.outputTokens + usage2.outputTokens,
-                totalTokens: d.usage1.totalTokens + usage2.totalTokens,
-                estimatedCostUsd: (d.usage1.estimatedCostUsd ?? 0) + (usage2.estimatedCostUsd ?? 0),
+                inputTokens: usage1.inputTokens + usage2.inputTokens,
+                outputTokens: usage1.outputTokens + usage2.outputTokens,
+                totalTokens: usage1.totalTokens + usage2.totalTokens,
+                estimatedCostUsd: (usage1.estimatedCostUsd ?? 0) + (usage2.estimatedCostUsd ?? 0),
               }
-            : usage2 ?? d.usage1 ?? null
+            : usage2 ?? usage1 ?? d.usage1 ?? null
         );
         setAppStep('parsed');
         console.log('[DocMaster] 보고서 생성 완료 (맞춤 질문 건너뛰기)');
@@ -452,7 +476,7 @@ function App() {
     })();
   };
 
-  /** 맞춤 질문 팝업: 반영하여 계속 → 선택 반영 정리 md 후 HTML 생성 */
+  /** 맞춤 질문 팝업: 반영하여 계속 → 원문+선택으로 정리 md 1회 생성 후 HTML 생성 */
   const handleCustomizationSubmit = (answers: Record<string, string>) => {
     const d = customizationDraft;
     if (!d) return;
@@ -460,25 +484,24 @@ function App() {
     setLoadingContext({ phase: 'generating', fileName: parsedFileName || '', subPhase: 'writing', liveMessages: t.loadingPopup.writingPhaseMessages });
     (async () => {
       try {
-        const { markdown: finalMd, usage: uRefine } = await refineMarkdownWithAnswersClient(
-          d.refinedMd,
+        const { markdown: finalMd, usage: uRefine } = await generateRefinedMarkdownWithChoicesClient(
+          d.rawMarkdown,
           answers,
-          d.reportType,
           d.questions,
+          d.reportType,
           d.llmProvider,
-          d.llmKey
+          d.llmKey,
+          d.highQuality
         );
-        const usage1 =
-          d.usage1 && uRefine
-            ? {
-                inputTokens: d.usage1.inputTokens + uRefine.inputTokens,
-                outputTokens: d.usage1.outputTokens + uRefine.outputTokens,
-                totalTokens: d.usage1.totalTokens + uRefine.totalTokens,
-                estimatedCostUsd: (d.usage1.estimatedCostUsd ?? 0) + (uRefine.estimatedCostUsd ?? 0),
-              }
-            : uRefine ?? d.usage1;
+        const mdToUse = (finalMd != null && finalMd.trim().length > 0) ? finalMd : '';
+        if (!mdToUse) {
+          throw new Error(t.errors.refinedContentFailed);
+        }
+        setReportMarkdown(mdToUse);
+        setReportTypeForMarkdown(d.reportType);
+        const usage1 = uRefine ?? d.usage1;
         const { html, usage: usage2 } = await generateHtmlFromMarkdownClient(
-          finalMd,
+          mdToUse,
           d.llmProvider,
           d.llmKey,
           d.templateId,
@@ -487,8 +510,6 @@ function App() {
           d.highQuality
         );
         setReportHtml(html);
-        setReportMarkdown(finalMd);
-        setReportTypeForMarkdown(d.reportType);
         setReportUsage(
           usage1 && usage2
             ? {
@@ -622,7 +643,19 @@ function App() {
             <User size={14} className="text-slate-400" />
             <span className="text-xs font-medium uppercase tracking-wider">{t.sidebar.developerTitle}</span>
           </div>
-          <p className="text-sm font-medium text-slate-700">{t.sidebar.developerName}</p>
+          <p className="text-sm font-medium text-slate-700">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(t.sidebar.developerPortfolioConfirm)) {
+                  window.location.href = 'https://rift-server.vercel.app/';
+                }
+              }}
+              className="text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+            >
+              {t.sidebar.developerName}
+            </button>
+          </p>
           <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
             <Mail size={12} className="text-slate-400 shrink-0" />
             <span>{t.sidebar.developerContact}:</span>
@@ -817,6 +850,7 @@ function App() {
           fileName={loadingContext.fileName}
           subPhase={loadingContext.subPhase}
           liveMessages={loadingContext.liveMessages}
+          pageProgress={loadingContext.pageProgress}
           lang={lang}
         />
       )}
@@ -921,6 +955,8 @@ function App() {
           onClose={() => setShowReportPopup(false)}
           lang={lang}
           variant="popup"
+          fileName={parsedFileName || undefined}
+          reportType={reportTypeForMarkdown}
         />
       )}
     </div>

@@ -116,6 +116,7 @@ def pdf_to_markdown(pdf_path: str, out_meta: dict[str, Any] | None = None) -> st
                 ocr_pages.append(page_num)
                 logger.info("OCR fallback 적용: Page %s", page_num)
 
+        result_parts.append(f"<!-- page: {page_num} -->\n\n")
         result_parts.append(f"## 📄 Page {page_num}\n")
         result_parts.append(page_text)
 

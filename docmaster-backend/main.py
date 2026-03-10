@@ -25,6 +25,11 @@ from app.pptx_utils import pptx_to_markdown
 from app.md_refine import refine_extracted_markdown
 from app.normalizer import apply_normalizations
 
+try:
+    from mdmin import compress as mdmin_compress
+except ImportError:
+    mdmin_compress = None
+
 app = FastAPI(
     title="DocMaster AI - Local Parsing Server",
     description="PDF/PPTX 문서를 마크다운으로 변환하는 로컬 파싱 서버",
@@ -58,6 +63,11 @@ REFINE_MD = os.environ.get("REFINE_MD", "true").lower() in ("1", "true", "yes")
 
 # 금액/날짜 정규화 적용 여부 (기본: True).
 NORMALIZE_MD = os.environ.get("NORMALIZE_MD", "true").lower() in ("1", "true", "yes")
+
+# mdmin 토큰 정비 수준: "medium"(기본, ~20-25% 절감) | "aggressive"(~25-35% 절감)
+TOKEN_OPTIMIZE_LEVEL = os.environ.get("TOKEN_OPTIMIZE_LEVEL", "medium").lower()
+if TOKEN_OPTIMIZE_LEVEL not in ("medium", "aggressive"):
+    TOKEN_OPTIMIZE_LEVEL = "medium"
 
 # 추출 결과 저장 디렉토리. Vercel 서버리스에서는 /tmp 사용 (쓰기 가능)
 OUTPUTS_DIR = Path("/tmp/docmaster_outputs") if os.environ.get("VERCEL") else Path(__file__).parent / "outputs"
@@ -123,6 +133,16 @@ async def parse_document(file: UploadFile = File(...)):
                 normalize_amount=True,
                 normalize_date=True,
             )
+
+        # 토큰 효율화 정비 (mdmin: 마크다운 압축으로 추출 결과 토큰 절감)
+        if mdmin_compress and markdown_text.strip():
+            try:
+                result = mdmin_compress(markdown_text, level=TOKEN_OPTIMIZE_LEVEL)
+                markdown_text = result.output
+                if hasattr(result, "stats") and result.stats:
+                    print(f"[DocMaster 백엔드] 토큰 정비 완료 saved≈{getattr(result.stats, 'saved', '?')} pct≈{getattr(result.stats, 'pct', '?')}%")
+            except Exception as e:
+                print(f"[DocMaster 백엔드] mdmin 정비 스킵 (오류): {e}")
 
         # 메타: 표 개수 (최종 MD 기준)
         parse_meta["table_count"] = markdown_text.count("[[TABLE]]")

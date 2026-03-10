@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Live demo:** [https://doc-master-ai.vercel.app/](https://doc-master-ai.vercel.app/)  
+**Live demo:** [https://doc-master-ai-wsjo.vercel.app/](https://doc-master-ai-wsjo.vercel.app/)  
 *(프론트·백엔드 모두 Vercel에 배포하면, 사용자는 Git/로컬 실행 없이 데모만으로 사용 가능.)*
 
 > 💡 **Useful?** Consider giving the repo a **star** so others can find it.
@@ -41,9 +41,16 @@ DocMaster는 **① 정확한 추출 → ② 2차 정리 md(핵심) → ③ HTML 
 
 - **정확한 추출 (Step 1)** — PDF/PPTX를 로컬 Python 백엔드에서 처리. 표·슬라이드 구조·텍스트 추출. 서드파티 문서 API 없음.
 - **2차 정리 md (Step 2, 핵심)** — 추출 결과를 LLM으로 분석해 경영진용·실무용 보고서 초안(정리 md) 생성. 품질 루브릭·고품질 N회차 옵션 지원.
-- **HTML 레포트 디자인 (Step 3)** — 정리된 내용을 여러 템플릿(기본 슬라이드형, 기획서 스타일, 프레젠테이션, 위키, PPTX 등)으로 꾸며 즉시 다운로드·활용 가능.
-- **선택한 LLM 사용** — OpenAI(GPT-4o, 5.x), Anthropic(Claude), Google(Gemini). API 키는 브라우저에만 저장되며, 추출 텍스트만 선택한 제공업체로 전송.
+- **HTML 레포트 디자인 (Step 3)** — 정리된 내용을 여러 템플릿(**기본: 기획/제안서 스타일(phase1)**), 프레젠테이션 슬라이드(presentation2), 위키, PPTX 내보내기 등)으로 꾸며 즉시 다운로드·활용 가능. **다운로드 파일명**: `{원본 파일명}_기획서` / `_개발Features` / `_품질sanity`.html.
+- **템플릿 관리** — 보고서용 HTML 템플릿 목록 조회·편집·저장·삭제 API(`/api/templates`, `/api/templates/:id`). 어드민에서 스타일 가이드 수정 후 저장 가능.
+- **선택한 LLM 사용** — OpenAI(GPT-4o; 질문·HTML 단계에서 4o 사용), Anthropic(Claude), Google(Gemini). API 키는 브라우저에만 저장되며, 추출 텍스트만 선택한 제공업체로 전송.
 - **한·영 UI** — 한국어/영어 전환, 프롬프트도 선택 언어에 맞춤.
+
+---
+
+## 최근 변경 사항 (Recent updates)
+
+맞춤 질문 플로우 개선, 기본 HTML 형식 변경, 다운로드 파일명 규칙 등 최근 적용된 변경은 **[docs/12-recent-updates-ko.md](docs/12-recent-updates-ko.md)** 에 정리되어 있습니다. 맞춤 질문이 "원문 → 질문 먼저 → 선택 시 정리 md 1회"로 동작하는 흐름은 [docs/08-customization-question-flow-ko.md](docs/08-customization-question-flow-ko.md) 를 참고하세요.
 
 ---
 
@@ -75,44 +82,51 @@ Open **http://localhost:5173**. In **Settings**, add your LLM API key and choose
 
 **같은 저장소로 Vercel 프로젝트를 두 개** 만들어서, 사용자가 Git 클론·로컬 서버 없이 데모 URL만으로 사용할 수 있게 할 수 있습니다.
 
-### 1) 프론트엔드 (이미 연결된 프로젝트)
+### 1) 프론트엔드
 
 - **Root Directory**: `docmaster-web`
-- **URL**: https://doc-master-ai.vercel.app (또는 본인 도메인)
+- **URL**: 예) https://doc-master-ai-wsjo.vercel.app (또는 본인 도메인)
 
-### 2) 백엔드 (새 Vercel 프로젝트 추가)
+### 2) 백엔드
 
 1. [Vercel Dashboard](https://vercel.com/new)에서 **같은 GitHub 저장소**를 다시 Import.
 2. **Root Directory**를 `docmaster-backend`로 지정.
 3. **Framework Preset**: Other (또는 Python)  
-   - `docmaster-backend`에는 `pyproject.toml`(진입점 `main:app`)과 `vercel.json`이 있어서 FastAPI가 서버리스로 배포됩니다.
-4. Deploy 후 나온 **백엔드 URL**을 복사 (예: `https://docmaster-backend-xxx.vercel.app`).
+   - `docmaster-backend`에는 `vercel.json`과 `api/` 서버리스 진입점이 있어 FastAPI가 서버리스로 배포됩니다. `/api/templates`, `/api/templates/:id`는 `vercel.json` rewrites로 `/api`(index)에 연결됩니다.
+4. Deploy 후 나온 **백엔드 URL**을 복사 (예: `https://doc-master-ai-wsjo.vercel.app`가 백엔드 전용이면 그 URL 사용).
 
 ### 3) 프론트엔드에서 백엔드 URL 연결
 
 1. **프론트엔드** Vercel 프로젝트 → **Settings** → **Environment Variables**
-2. `VITE_API_BASE_URL` = 위에서 복사한 **백엔드 URL** (예: `https://docmaster-backend-xxx.vercel.app`) 추가.  
-   - Production, Preview, Development 모두 같은 값으로 설정해도 됩니다.
+2. `VITE_API_BASE_URL` = 위에서 복사한 **백엔드 URL** 추가.  
+   - 설정하지 않으면 배포 도메인 기준으로 같은 호스트를 사용합니다 (프론트·백을 한 프로젝트로 둔 경우).
 3. **Redeploy** 한 번 실행.
 
-이후에는 https://doc-master-ai.vercel.app 에서 파일 업로드·추출·보고서 생성이 **로컬 실행 없이** 동작합니다.
+이후에는 데모 URL에서 파일 업로드·추출·보고서 생성이 **로컬 실행 없이** 동작합니다.
 
-- **참고**: Vercel 서버리스는 요청당 실행 시간 제한(기본 60초 등)이 있으므로, 매우 큰 PDF/PPTX는 타임아웃될 수 있습니다. 제한은 프로젝트 설정 또는 `docmaster-backend/vercel.json`의 `maxDuration`으로 조정 가능합니다.
+- **Vercel 제한 사항**  
+  - 요청/응답 본문 **약 4.5MB** 제한이 있으며 플랫폼에서 변경할 수 없습니다. 업로드 파일이 크면 413 오류가 나며, 앱에서는 “버셀 환경상 요청 크기가 서버 제한을 초과했습니다” 안내를 표시합니다.  
+  - 서버리스 실행 시간 제한(기본 60초 등)이 있으므로, 매우 큰 PDF/PPTX는 타임아웃될 수 있습니다. `docmaster-backend/vercel.json`의 `functions` 등으로 조정 가능합니다.
 
 ---
 
 ## Project Structure
 
 ```
-├── docmaster-backend/     # FastAPI: /parse (PDF/PPTX → Markdown), optional storage
-├── docmaster-web/         # React + Vite: upload UI, prompts, report viewer
-├── docs/                  # Architecture and implementation notes
+├── docmaster-backend/     # FastAPI: /api/parse, /api/health, /api/templates(목록·조회·저장·삭제)
+│   ├── api/               # Vercel 서버리스: health.py, parse.py, index.py, templates/[[...path]].py
+│   ├── app/               # PDF/PPTX 추출, 정제 로직
+│   ├── data/templates/    # HTML 템플릿 번들 (배포 시 이 경로 사용)
+│   └── vercel.json        # rewrites, CORS 헤더
+├── docmaster-web/         # React + Vite: 업로드 UI, 프롬프트, 보고서 뷰어, 템플릿 어드민
+├── docs/                  # 아키텍처·구현 노트, 사용자 메뉴얼
+├── CONTRIBUTING.md        # 기여 가이드
 ├── LICENSE                # MIT
 └── README.md
 ```
 
-- **Parsing**: Local Python server only. No cloud parsing keys required.
-- **Reports**: Generated in the browser by calling your chosen LLM with the extracted markdown and configurable prompts.
+- **Parsing**: 로컬 Python 서버 또는 Vercel 서버리스. 별도 문서 클라우드 키 불필요.
+- **Reports**: 브라우저에서 선택한 LLM으로 추출 마크다운과 설정 가능한 프롬프트를 사용해 생성.
 
 ---
 
@@ -140,6 +154,19 @@ Open **http://localhost:5173**. In **Settings**, add your LLM API key and choose
 
 ---
 
+## Open Source / 소스 오픈
+
+이 프로젝트는 **MIT 라이선스**로 공개되어 있습니다. 자유롭게 사용·수정·재배포하실 수 있습니다.
+
+**가져다 쓰시거나 포크해서 더 좋게 개선하셨다면, 꼭 함께 공유해 주세요.**
+
+- **개선 사항·아이디어**: [Issues](https://github.com/nextJS9127/DocMasterAI/issues) 또는 [Discussions](https://github.com/nextJS9127/DocMasterAI/discussions)
+- **코드 반영**: [Pull Request](https://github.com/nextJS9127/DocMasterAI/pulls)
+
+다른 분들도 참고할 수 있도록 공유해 주시면 감사하겠습니다.
+
+---
+
 ## Releases
 
 - **첫 릴리스**: GitHub에서 **Releases** → **Create a new release** → Tag `v0.1.0` (또는 `v1.0.0`) 생성 후 릴리스 노트 작성.
@@ -155,4 +182,7 @@ MIT. See [LICENSE](LICENSE).
 
 ## Contributing
 
-Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. If you find this useful, consider giving the repo a **star**.
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**소스를 가져다 쓰시거나 더 좋게 개선하셨다면, 이슈·PR·토론으로 꼭 공유해 주세요.**  
+If you find this useful, consider giving the repo a **star**.

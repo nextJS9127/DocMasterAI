@@ -56,7 +56,7 @@ export function ParsedResultPanel({
     onViewReport,
 }: ParsedResultPanelProps) {
     const [reportType, setReportType] = useState<'executive' | 'team'>('executive');
-    const [htmlTemplateId, setHtmlTemplateId] = useState<HtmlTemplateId>('presentation2');
+    const [htmlTemplateId, setHtmlTemplateId] = useState<HtmlTemplateId>('phase1');
     const [featuresTemplateId, setFeaturesTemplateId] = useState<string>('features');
     const [testcasesTemplateId, setTestcasesTemplateId] = useState<string>('testcases');
     const [highQuality, setHighQuality] = useState(false);

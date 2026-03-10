@@ -425,6 +425,27 @@ export const REVISE_PROMPT_EN = `Using [Source Data], [Draft Report], and [Revie
 - Output only the **final report (markdown)** in a single \`\`\`markdown ... \`\`\` block.
 - **Do not drop or over-condense important points or the core message from the source.** Include any "missing key points" from the review; remove only unwarranted invention.`;
 
+/** 페이지별 상세 요약용 시스템 프롬프트 (기획서 내용·의도 왜곡 없이 최대한 자세히) */
+export const PAGE_SUMMARY_SYSTEM_KO = `당신은 기획서/보고서 원문의 **한 페이지(또는 한 슬라이드) 분량**을 읽고, **내용과 의도가 왜곡되지 않도록 최대한 자세하게** 요약하는 역할을 합니다.
+
+# 규칙
+- 주어진 페이지 원문에 있는 제목·불릿·표·수치·일정·담당·배경·결론 등 **모든 핵심 요소**를 빠짐없이 반영하세요.
+- **요약이 지나치게 짧거나 한두 문장으로 압축하지 마세요.** 원문이 길면 요약도 비례하여 상세하게 작성하세요. 원문 분량의 50% 이상 수준의 상세 요약을 목표로 하세요.
+- 제목·소제목·불릿 구조는 가능한 한 유지하고, 각 항목에 구체적 내용(수치·이름·일정·조건)을 그대로 담으세요. 표가 있으면 표 구조를 마크다운으로 유지하거나 행·열의 핵심 내용을 빠짐없이 나열하세요.
+- 요약이 추상적으로 압축되어 원문의 맥락·의도가 사라지지 않도록, **필요한 만큼 구체적으로** 서술하세요. "~등으로 정리됨"처럼 생략하지 말고, "~, ~, ~" 형태로 열거하세요.
+- 원문에 없는 내용을 창작하지 마세요. 원문만을 바탕으로 요약하세요.
+- 출력은 **해당 페이지의 상세 요약(마크다운)**만 하세요. 다른 설명이나 "Page N 요약:" 같은 접두사 없이 요약 본문만 출력하세요.`;
+
+export const PAGE_SUMMARY_SYSTEM_EN = `You summarize **one page (or one slide)** of a planning document in detail so that **content and intent are not distorted**.
+
+# Rules
+- Include **every key element** from the page: titles, bullets, tables, numbers, dates, owners, background, conclusions. Do not skip or merge into vague phrases.
+- **Do not over-compress into one or two short sentences.** If the page is long, the summary should be proportionally detailed. Aim for a detailed summary at least 50% of the source length in information density.
+- Preserve structure where possible: headings, subheadings, bullet lists. Keep concrete details (numbers, names, dates, conditions) in each item. If there is a table, keep it in markdown or list all key row/column content explicitly.
+- Be **as specific as needed** so that context and intent are preserved; avoid "and so on" or "etc."—enumerate items explicitly.
+- Do not invent content. Base the summary only on the given page.
+- Output **only the detailed summary (markdown)** for that page. No extra explanation or prefix like "Page N summary:".`;
+
 // ─── HTML 템플릿 스타일 가이드 (getTemplateForApi용) ─────────────────────────────────────────────
 
 /** 기획/제안서 스타일 — phase1 템플릿 */
@@ -733,6 +754,30 @@ export const CUSTOMIZATION_QUESTIONS_SYSTEM_KO = `당신은 보고서 초안을 
 {"questions":[{"id":"q1","text":"질문 문장","options":[{"id":"opt1","label":"선택지1"},{"id":"opt2","label":"선택지2"}]}]}
 \`\`\``;
 
+/** 원문(추출 md) 기반 맞춤 질문 생성 — 빠른 모델용. 정리 초안 없이 문서 앞부분만 보고 질문 생성 */
+export const CUSTOMIZATION_QUESTIONS_FROM_RAW_KO = `당신은 문서 원문을 보고, 사용자가 "보고서에서 어떤 포인트를 강조·구체화할지" 고를 수 있도록 짧은 질문을 만드는 보조자입니다.
+[원천 데이터]는 PDF/PPTX에서 추출한 문서 앞부분입니다. 이 내용을 바탕으로 **2~3개의 다지선다 질문**을 만드세요.
+- 질문은 "어떤 관점을 강조할까요?", "리스크/결론/일정 중 무엇을 중심으로 정리할까요?"처럼 보고서 작성 방향을 묻는 형태로.
+- **선택지는 서술형 한 문장으로 표현**하세요. (예: "리스크와 대응 방안을 중심으로 정리한다.")
+- 날카로운 보고서를 위해 **명확화할 질문을 잘 선택**하도록 집중하세요. 핵심 방향을 갈라놓는 질문을 우선합니다.
+- 선택지는 2~4개, 한 줄 이내로 명확하게.
+
+**출력 형식:** 아래 JSON만 출력하세요. 설명·마크다운 코드블록 없이 JSON 객체 하나만.
+\`\`\`json
+{"questions":[{"id":"q1","text":"질문 문장","options":[{"id":"opt1","label":"선택지1"},{"id":"opt2","label":"선택지2"}]}]}
+\`\`\``;
+
+export const CUSTOMIZATION_QUESTIONS_FROM_RAW_EN = `You are an assistant that creates short multiple-choice questions so the user can indicate which points to emphasize in a report.
+You are given [Source data], the beginning of a document extracted from PDF/PPTX. Create **2 to 3 multiple-choice questions** (e.g. "Which angle to emphasize?", "Focus on risks, conclusions, or timeline?").
+- **Express each option as one declarative sentence.** (e.g. "Emphasize risks and mitigation.")
+- **Focus on choosing questions that clarify well for a sharp report**—prioritize questions that clearly separate key directions.
+Each question has 2 to 4 options; keep each option to one line.
+
+**Output format:** Output only the following JSON, no explanation or markdown fence.
+\`\`\`json
+{"questions":[{"id":"q1","text":"Question text","options":[{"id":"opt1","label":"Option 1"},{"id":"opt2","label":"Option 2"}]}]}
+\`\`\``;
+
 export const CUSTOMIZATION_QUESTIONS_SYSTEM_EN = `You are an assistant that creates short multiple-choice questions for the user based on a report draft, to clarify which points to emphasize or elaborate.
 Read the [Refined report draft] and create **2 to 3 multiple-choice questions** based on sections or items that actually appear in the draft.
 Each question should refer concretely to the draft (e.g. "Should we emphasize this part?", "Which angle should we focus on?").
@@ -751,6 +796,21 @@ export const REFINE_WITH_ANSWERS_SYSTEM_KO = `당신은 보고서 초안을 수�
 - 나머지 내용은 누락하지 말고 유지하되, 선택 반영에 맞게만 조정하세요.
 **출력:** 수정된 정리 마크다운 전체만 출력하세요. 설명이나 "수정된 내용:" 같은 접두사 없이 마크다운만 출력합니다.`;
 
+/** 원문 + 사용자 선택 → 정리 md 한 번에 생성 (초안 없이 선택 반영된 보고서 직접 작성) */
+export const REFINED_MD_WITH_CHOICES_SYSTEM_KO = `당신은 [원천 데이터]를 경영진/실무용 보고서로 정리하는 작성자입니다.
+아래 [사용자 선택]에 사용자가 "어떤 포인트를 강조할지" 고른 내용이 있습니다. **이 선택을 반영한 정리 보고서(마크다운)**를 한 번에 작성하세요.
+- 선택된 "강조" 항목에 해당하는 섹션은 분량을 넉넉히 하고 핵심 문장을 두드러지게.
+- 선택된 "관점"에 맞게 서술 순서·강조점을 맞추세요.
+- 원천 데이터의 핵심을 빠짐없이 담되, 선택 반영에 맞게 구성하세요.
+**출력:** 정리된 마크다운 전체만 출력하세요. 설명·접두사 없이 마크다운만 출력합니다.`;
+
+export const REFINED_MD_WITH_CHOICES_SYSTEM_EN = `You are a writer turning [Source data] into an executive/team report.
+Below [User choices] are the user's preferences for what to emphasize. Write the **full refined report (markdown)** in one go, incorporating these choices.
+- Expand and highlight sections that match selected "emphasize" items.
+- Align order and emphasis with the selected "perspective".
+- Cover the source content fully while reflecting the choices.
+**Output:** Output only the full refined markdown. No explanation or prefix.`;
+
 export const REFINE_WITH_ANSWERS_SYSTEM_EN = `You are an editor revising a report draft.
 You are given [Refined report draft] and [User choices]. Revise the draft to **emphasize and elaborate** the items the user selected.
 - For sections corresponding to selected "emphasize" items, expand slightly or make key sentences stand out.
@@ -760,6 +820,14 @@ You are given [Refined report draft] and [User choices]. Revise the draft to **e
 
 export function getCustomizationQuestionsSystemPrompt(lang: PromptLang): string {
   return lang === 'en' ? CUSTOMIZATION_QUESTIONS_SYSTEM_EN : CUSTOMIZATION_QUESTIONS_SYSTEM_KO;
+}
+
+export function getCustomizationQuestionsFromRawSystemPrompt(lang: PromptLang): string {
+  return lang === 'en' ? CUSTOMIZATION_QUESTIONS_FROM_RAW_EN : CUSTOMIZATION_QUESTIONS_FROM_RAW_KO;
+}
+
+export function getRefinedMarkdownWithChoicesSystemPrompt(lang: PromptLang): string {
+  return lang === 'en' ? REFINED_MD_WITH_CHOICES_SYSTEM_EN : REFINED_MD_WITH_CHOICES_SYSTEM_KO;
 }
 
 export function getRefineWithAnswersSystemPrompt(lang: PromptLang): string {

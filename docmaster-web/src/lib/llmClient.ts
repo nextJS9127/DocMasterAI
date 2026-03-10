@@ -31,12 +31,16 @@ import {
     CRITIQUE_PROMPT_EN,
     REVISE_PROMPT_KO,
     REVISE_PROMPT_EN,
+    PAGE_SUMMARY_SYSTEM_KO,
+    PAGE_SUMMARY_SYSTEM_EN,
     getTemplateForApi,
     getReportGenerationConfig as getExecutiveReportGenerationConfig,
     TEMPLATE_INSTRUCTION_STYLE_GUIDE,
     HTML_FROM_MD_FULL_COVERAGE,
     getCustomizationQuestionsSystemPrompt,
+    getCustomizationQuestionsFromRawSystemPrompt,
     getRefineWithAnswersSystemPrompt,
+    getRefinedMarkdownWithChoicesSystemPrompt,
     type PromptLang,
     type HtmlTemplateId,
 } from './prompts/executiveTeam';
@@ -81,9 +85,9 @@ const LLM_SELECTION_MAP: Record<string, { provider: 'openai' | 'claude' | 'gemin
     'gemini-25-pro': { provider: 'gemini', modelId: 'gemini-2.5-pro' },
 };
 
-/** HTML 생성 단계 전용: 한 단계 더 빠른 모델 고정 → 체감/실제 속도 개선 */
+/** HTML 생성 단계 전용: 한 단계 더 빠른 모델 고정 → 체감/실제 속도 개선. OpenAI는 4o 사용(품질 우선) */
 const HTML_STEP_FAST_MODEL: Record<'openai' | 'claude' | 'gemini', string> = {
-    openai: 'gpt-4o-mini',
+    openai: 'gpt-4o',
     claude: 'claude-3-5-haiku-20241022',
     gemini: 'gemini-2.0-flash',
 };
@@ -748,13 +752,80 @@ function stripPromptStepHeadersFromMd(md: string): string {
         .trim();
 }
 
+/** 추출 md에서 페이지 단위 분할. 우선 <!-- page: N --> 사용, 없으면 ## 📄 Page N / ## Slide N 로 분할. 둘 다 없으면 전체를 페이지 1로 반환. */
+export function parseMarkdownByPage(md: string): { pageNum: number; content: string }[] {
+    const trimmed = md.trim();
+    if (!trimmed) return [];
+
+    // 1) HTML 주석 마커 기준 분할
+    const commentRegex = /<!--\s*page:\s*(\d+)\s*-->/gi;
+    const partsByComment: { pageNum: number; content: string }[] = [];
+    let m: RegExpExecArray | null;
+    const re = new RegExp(commentRegex.source, 'gi');
+    while ((m = re.exec(trimmed)) !== null) {
+        const pageNum = parseInt(m[1], 10);
+        const contentStart = m.index + m[0].length;
+        const nextMarker = trimmed.indexOf('<!--', contentStart);
+        const content = nextMarker >= 0
+            ? trimmed.slice(contentStart, nextMarker).trim()
+            : trimmed.slice(contentStart).trim();
+        if (content) partsByComment.push({ pageNum, content });
+    }
+    if (partsByComment.length > 0) return partsByComment;
+
+    // 2) ## 📄 Page N 또는 ## Slide N (PPTX) 헤딩 기준 분할 (실제 추출 md에 주석이 없을 때 대비)
+    const headingRegex = /^##\s*(?:📄\s*Page|(?:🖼\s*)?Slide)\s+(\d+)(?:\s*:.*)?\s*$/gm;
+    const headingMatches: { index: number; pageNum: number; lineLength: number }[] = [];
+    let hm: RegExpExecArray | null;
+    const hr = new RegExp(headingRegex.source, 'gm');
+    while ((hm = hr.exec(trimmed)) !== null) {
+        const lineEnd = trimmed.indexOf('\n', hm.index);
+        const lineLength = lineEnd >= 0 ? lineEnd - hm.index + 1 : trimmed.length - hm.index;
+        headingMatches.push({
+            index: hm.index,
+            pageNum: parseInt(hm[1], 10),
+            lineLength,
+        });
+    }
+    if (headingMatches.length > 0) {
+        const partsByHeading: { pageNum: number; content: string }[] = [];
+        for (let i = 0; i < headingMatches.length; i++) {
+            const start = headingMatches[i].index + headingMatches[i].lineLength;
+            const end = i + 1 < headingMatches.length ? headingMatches[i + 1].index : trimmed.length;
+            const content = trimmed.slice(start, end).trim();
+            if (content) partsByHeading.push({ pageNum: headingMatches[i].pageNum, content });
+        }
+        if (partsByHeading.length > 0) return partsByHeading;
+    }
+
+    return [{ pageNum: 1, content: trimmed }];
+}
+
+/** 한 페이지 분량을 기획서 의도가 왜곡되지 않도록 상세 요약. (페이지별 정리 md 파이프라인용) */
+async function summarizePageDetail(
+    pageNum: number,
+    content: string,
+    selection: string,
+    apiKey: string,
+    promptLang: PromptLang
+): Promise<{ summary: string; usage?: ReportUsage }> {
+    const systemPrompt = promptLang === 'en' ? PAGE_SUMMARY_SYSTEM_EN : PAGE_SUMMARY_SYSTEM_KO;
+    const userPrompt = promptLang === 'en'
+        ? `[Page ${pageNum} — original content]\n\n${content}`
+        : `[페이지 ${pageNum} — 원문]\n\n${content}`;
+    const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, 8192, false);
+    const summary = (typeof fullBody === 'string' ? fullBody : '').trim();
+    return { summary, usage };
+}
+
 /** 2단계 1차: 원시 md → 정리된 경영진/실무/테스트케이스/개발피처용 md. 테스트케이스·개발피처는 1회 호출만. */
 export async function generateRefinedMarkdownClient(
     rawMarkdown: string,
     selection: string,
     apiKey: string,
     reportType: 'executive' | 'team' | 'testcases' | 'features',
-    highQuality: boolean
+    highQuality: boolean,
+    onPageProgress?: (current: number, total: number) => void
 ): Promise<{ markdown: string; usage?: ReportUsage }> {
     const promptLang: PromptLang = localStorage.getItem('docmaster_lang') === 'en' ? 'en' : 'ko';
     const lineCount = rawMarkdown.split('\n').length;
@@ -803,18 +874,53 @@ export async function generateRefinedMarkdownClient(
     const systemBase = editablePart + QUALITY_RUBRIC_AND_NO_LOSS + (reportType === 'team' ? TEAM_RICH_AND_UNLIMITED_LENGTH : '');
     let totalUsage: ReportUsage | undefined;
 
+    // 페이지 단위 상세 요약 후, 그 결과를 바탕으로 정리 md 생성 (경영진/실무만)
+    const pages = parseMarkdownByPage(rawMarkdown);
+    let sourceForRefine = rawMarkdown;
+    if (pages.length > 0) {
+        console.log('[DocMaster] 페이지별 요약 파이프라인 시작', {
+            pageCount: pages.length,
+            pageNumbers: pages.map((p) => p.pageNum),
+            hasPageMarkers: rawMarkdown.includes('<!-- page:'),
+        });
+        const summaries: string[] = [];
+        const pageLabel = promptLang === 'en' ? 'Page' : '페이지';
+        const summaryLabel = promptLang === 'en' ? 'summary' : '요약';
+        for (const page of pages) {
+            onPageProgress?.(summaries.length + 1, pages.length);
+            console.log('[DocMaster] 페이지별 요약 LLM 호출', { pageNum: page.pageNum, contentLength: page.content.length });
+            const { summary, usage } = await summarizePageDetail(page.pageNum, page.content, selection, apiKey, promptLang);
+            console.log('[DocMaster] 페이지별 요약 LLM 완료', { pageNum: page.pageNum, summaryLength: summary.length, usage });
+            summaries.push(summary);
+            if (usage) {
+                totalUsage = totalUsage
+                    ? {
+                        inputTokens: totalUsage.inputTokens + usage.inputTokens,
+                        outputTokens: totalUsage.outputTokens + usage.outputTokens,
+                        totalTokens: totalUsage.totalTokens + usage.totalTokens,
+                        estimatedCostUsd: (totalUsage.estimatedCostUsd ?? 0) + (usage.estimatedCostUsd ?? 0),
+                    }
+                    : usage;
+            }
+        }
+        sourceForRefine = summaries
+            .map((s, i) => `## ${pageLabel} ${pages[i].pageNum} ${summaryLabel}\n\n${s}`)
+            .join('\n\n');
+        console.log('[DocMaster] 페이지별 요약 전체 완료', { pageCount: pages.length, combinedLength: sourceForRefine.length });
+    }
+
     if (highQuality) {
         // 1차: 초안 md만 (긴 출력 허용)
         const systemDraft = systemBase + MD_OUTPUT_INSTRUCTION_DRAFT_ONLY;
-        const userDraft = `${lengthHint}[원천 데이터 / Source Data]\n\n${rawMarkdown}`;
+        const userDraft = `${lengthHint}[원천 데이터 / Source Data]\n\n${sourceForRefine}`;
         const { fullBody: draftBody, usage: u1 } = await callLlm(systemDraft, userDraft, selection, apiKey, REFINED_MD_MAX_TOKENS, true);
-        if (u1) totalUsage = u1;
+        if (u1) totalUsage = totalUsage ? { inputTokens: totalUsage.inputTokens + u1.inputTokens, outputTokens: totalUsage.outputTokens + u1.outputTokens, totalTokens: totalUsage.totalTokens + u1.totalTokens, estimatedCostUsd: (totalUsage.estimatedCostUsd ?? 0) + (u1.estimatedCostUsd ?? 0) } : u1;
         let draftMd = parseLastMarkdownBlock(draftBody) || stripPromptStepHeadersFromMd(draftBody.trim());
         if (draftMd && isOnlyVariablePlaceholders(draftMd)) draftMd = stripPromptStepHeadersFromMd(draftBody.trim()).length > 200 ? stripPromptStepHeadersFromMd(draftBody.trim()) : '';
 
         // 2차: 검토만
         const critiquePrompt = promptLang === 'en' ? CRITIQUE_PROMPT_EN : CRITIQUE_PROMPT_KO;
-        const userCritique = `[원천 데이터]\n${rawMarkdown}\n\n[초안 보고서]\n${draftMd}`;
+        const userCritique = `[원천 데이터]\n${sourceForRefine}\n\n[초안 보고서]\n${draftMd}`;
         const { fullBody: critiqueBody, usage: u2 } = await callLlm(critiquePrompt, userCritique, selection, apiKey, 2048, true);
         if (u2) {
             totalUsage = totalUsage
@@ -829,7 +935,7 @@ export async function generateRefinedMarkdownClient(
 
         // 3차: 검토 반영 최종 md
         const revisePrompt = promptLang === 'en' ? REVISE_PROMPT_EN : REVISE_PROMPT_KO;
-        const userRevise = `[원천 데이터]\n${rawMarkdown}\n\n[초안 보고서]\n${draftMd}\n\n[검토 결과]\n${critiqueBody.trim()}`;
+        const userRevise = `[원천 데이터]\n${sourceForRefine}\n\n[초안 보고서]\n${draftMd}\n\n[검토 결과]\n${critiqueBody.trim()}`;
         const { fullBody: finalBody, usage: u3 } = await callLlm(revisePrompt, userRevise, selection, apiKey, REFINED_MD_MAX_TOKENS, true);
         let finalMd = parseLastMarkdownBlock(finalBody) || stripPromptStepHeadersFromMd(finalBody.trim());
         if (finalMd && isOnlyVariablePlaceholders(finalMd)) finalMd = '';
@@ -860,7 +966,7 @@ export async function generateRefinedMarkdownClient(
 
     // 일반: 1회 호출 내 초안 → 자가검토 → 최종 (긴 출력 허용)
     const systemNormal = systemBase + MD_OUTPUT_INSTRUCTION_NORMAL;
-    const userNormal = `${lengthHint}[원천 데이터 / Source Data]\n\n${rawMarkdown}`;
+    const userNormal = `${lengthHint}[원천 데이터 / Source Data]\n\n${sourceForRefine}`;
     console.log('[DocMaster] 정리 md 1회 호출 (일반 모드)', { reportType, inputChars: rawMarkdown.length, inputLines: lineCount, highQuality: false });
     const { fullBody, usage } = await callLlm(systemNormal, userNormal, selection, apiKey, REFINED_MD_MAX_TOKENS, highQuality);
     let lastMd = parseLastMarkdownBlock(fullBody);
@@ -924,6 +1030,36 @@ export async function generateCustomizationQuestionsFromDraftClient(
     }
 }
 
+/** 원문(추출 md)만으로 맞춤 질문 생성 — 빠른 모델 사용. 정리 초안 없이 질문만 먼저 보여줄 때 사용. */
+export async function generateCustomizationQuestionsFromRawClient(
+    rawMarkdown: string,
+    _reportType: 'executive' | 'team',
+    selection: string,
+    apiKey: string
+): Promise<{ questions: CustomizationQuestion[]; usage?: ReportUsage }> {
+    const promptLang: PromptLang = localStorage.getItem('docmaster_lang') === 'en' ? 'en' : 'ko';
+    const systemPrompt = getCustomizationQuestionsFromRawSystemPrompt(promptLang);
+    const excerpt = (rawMarkdown || '').trim().slice(0, 12000);
+    const userLabel = promptLang === 'en' ? '[Source data]' : '[원천 데이터]';
+    const userPrompt = `${userLabel}\n\n${excerpt}`;
+    try {
+        const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, 1024, false, { useFastModel: true });
+        const jsonMatch = fullBody.match(/\{[\s\S]*\}/);
+        const raw = jsonMatch ? jsonMatch[0] : fullBody.trim();
+        const parsed = JSON.parse(raw) as { questions?: CustomizationQuestion[] };
+        const list = Array.isArray(parsed.questions) ? parsed.questions : [];
+        const valid = list.filter(
+            (q): q is CustomizationQuestion =>
+                typeof q?.id === 'string' && typeof q?.text === 'string' && Array.isArray(q?.options) &&
+                q.options.every((o) => typeof o?.id === 'string' && typeof o?.label === 'string')
+        );
+        return { questions: valid.slice(0, 3), usage };
+    } catch (e) {
+        console.warn('[generateCustomizationQuestionsFromRawClient] 파싱 실패', e);
+        return { questions: [], usage: undefined };
+    }
+}
+
 /** 사용자 선택을 반영해 정리 md 수정. */
 export async function refineMarkdownWithAnswersClient(
     refinedMd: string,
@@ -949,6 +1085,34 @@ export async function refineMarkdownWithAnswersClient(
     const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, REFINED_MD_MAX_TOKENS, false);
     const outMd = parseLastMarkdownBlock(fullBody) || stripPromptStepHeadersFromMd(fullBody.trim());
     return { markdown: outMd?.trim() || refinedMd, usage };
+}
+
+/** 원문 + 사용자 선택으로 정리 md 1회 생성 (초안 없이 선택 반영된 보고서만 한 번에 작성). */
+export async function generateRefinedMarkdownWithChoicesClient(
+    rawMarkdown: string,
+    answers: Record<string, string>,
+    questionList: CustomizationQuestion[],
+    _reportType: 'executive' | 'team',
+    selection: string,
+    apiKey: string,
+    highQuality = false
+): Promise<{ markdown: string; usage?: ReportUsage }> {
+    const promptLang: PromptLang = localStorage.getItem('docmaster_lang') === 'en' ? 'en' : 'ko';
+    const systemPrompt = getRefinedMarkdownWithChoicesSystemPrompt(promptLang);
+    const choicesText = questionList
+        .map((q) => {
+            const optId = answers[q.id];
+            const opt = q.options.find((o) => o.id === optId);
+            return opt ? `- ${q.text} → ${opt.label}` : null;
+        })
+        .filter(Boolean)
+        .join('\n');
+    const choicesLabel = promptLang === 'en' ? '[User choices]' : '[사용자 선택]';
+    const sourceLabel = promptLang === 'en' ? '[Source data]' : '[원천 데이터]';
+    const userPrompt = `${choicesLabel}\n${choicesText}\n\n${sourceLabel}\n\n${(rawMarkdown || '').trim().slice(0, REFINED_MD_CHARS_THRESHOLD)}`;
+    const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, REFINED_MD_MAX_TOKENS, highQuality);
+    const outMd = parseLastMarkdownBlock(fullBody) || stripPromptStepHeadersFromMd(fullBody.trim());
+    return { markdown: outMd?.trim() || '', usage };
 }
 
 /** C방식: 정리 md에서 섹션별 HTML 조각만 JSON으로 추출 (default 템플릿용, 출력 짧아서 빠름) */
@@ -1087,8 +1251,10 @@ Reflect the **category list and feature table headers, column count, and order**
 
     const htmlStepMaxTokens = refinedMarkdown.length > REFINED_MD_CHARS_THRESHOLD ? HTML_STEP_MAX_TOKENS_LARGE : HTML_STEP_MAX_TOKENS;
     const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, htmlStepMaxTokens, highQuality, { stream: true, useFastModel: true });
-    const htmlMatch = fullBody.match(/```html\s*([\s\S]*?)```/);
-    const html = htmlMatch ? htmlMatch[1].trim() : (fullBody.startsWith('```html') ? fullBody.replace(/^```html\s*/, '').replace(/\s*```$/, '').trim() : fullBody.trim());
+    const htmlMatch = fullBody.match(/```html\s*([\s\S]*?)```/i);
+    const html = htmlMatch
+        ? htmlMatch[1].trim()
+        : (/^```html\s*/i.test(fullBody) ? fullBody.replace(/^```html\s*/i, '').replace(/\s*```\s*$/i, '').trim() : fullBody.trim());
     return { html, usage };
 }
 
@@ -1097,7 +1263,7 @@ export async function generateReportClient(
     selection: string,
     apiKey: string,
     reportType: ReportType = 'executive',
-    templateId: HtmlTemplateId = 'presentation2',
+    templateId: HtmlTemplateId = 'phase1',
     apiBaseUrl?: string
 ): Promise<GenerateReportResult> {
     const mapped = LLM_SELECTION_MAP[selection];

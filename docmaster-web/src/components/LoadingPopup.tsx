@@ -15,10 +15,11 @@ export interface LoadingPopupProps {
     fileName?: string;
     subPhase?: 'refining' | 'writing';
     liveMessages?: string[];
+    pageProgress?: { current: number; total: number };
     lang: Language;
 }
 
-export function LoadingPopup({ phase, fileName = '', subPhase: _subPhase, liveMessages, lang }: LoadingPopupProps) {
+export function LoadingPopup({ phase, fileName = '', subPhase: _subPhase, liveMessages, pageProgress, lang }: LoadingPopupProps) {
     const t = translations[lang];
     const statusMessages =
         phase === 'parsing'
@@ -88,7 +89,11 @@ export function LoadingPopup({ phase, fileName = '', subPhase: _subPhase, liveMe
                     <p className="mt-1 text-sm text-slate-500">
                         {phase === 'parsing'
                             ? t.loadingPopup.waitParsing
-                            : t.loadingPopup.waitGenerating}
+                            : pageProgress && pageProgress.total > 0
+                              ? t.loadingPopup.pageProgressMessage
+                                    .replace(/\{total\}/g, String(pageProgress.total))
+                                    .replace(/\{current\}/g, String(pageProgress.current))
+                              : t.loadingPopup.waitGenerating}
                     </p>
 
                     <div className="mt-8 w-full rounded-xl border border-indigo-100 bg-indigo-50/80 px-4 py-3 text-left">

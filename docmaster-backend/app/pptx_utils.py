@@ -170,6 +170,7 @@ def pptx_to_markdown(pptx_path: str, out_meta: dict | None = None) -> str:
         body_parts = _collect_from_shapes(slide.shapes, title_holder)
         title_text = title_holder[0]
 
+        result_parts.append(f"<!-- page: {slide_num} -->\n\n")
         slide_md = f"## 🖼 Slide {slide_num}"
         if title_text:
             slide_md += f": {title_text}"

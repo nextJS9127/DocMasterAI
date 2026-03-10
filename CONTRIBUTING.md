@@ -2,6 +2,17 @@
 
 Thanks for your interest in contributing. Below are simple guidelines for issues and pull requests.
 
+## Share your improvements / 개선 사항 공유
+
+**이 저장소를 포크하거나 가져다 사용하시다가 더 좋게 개선하셨다면, 꼭 함께 공유해 주세요.**
+
+If you use this project (as-is or forked) and make it better—new features, fixes, or ideas—please share them so others can benefit too.
+
+- **개선 사항·아이디어 공유**: [Issues](https://github.com/nextJS9127/DocMasterAI/issues) or [Discussions](https://github.com/nextJS9127/DocMasterAI/discussions)
+- **코드 반영**: [Pull Requests](https://github.com/nextJS9127/DocMasterAI/pulls)
+
+---
+
 ## Reporting issues
 
 - **Search** existing [Issues](https://github.com/nextJS9127/DocMasterAI/issues) first to avoid duplicates.

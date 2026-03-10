@@ -2,10 +2,18 @@ import { useMemo } from 'react';
 import { Download, LayoutPanelLeft, X } from 'lucide-react';
 import { translations } from '../lib/translations';
 import type { Language } from '../lib/translations';
+import type { ReportType } from '../lib/llmClient';
 
 /** check-list는 CSS ::before로 ✓가 붙으므로, <li> 안에 LLM이 넣은 선두 ✓ 제거 (중복 방지) */
 function stripDuplicateCheckmarks(html: string): string {
   return html.replace(/<li>\s*(?:✓\s*)+/gi, '<li>');
+}
+
+/** 보고서 유형별 HTML 다운로드 파일명 접미사 (첨부 파일명_접미사.html) */
+function getReportDownloadSuffix(reportType: ReportType | null): string {
+  if (reportType === 'features') return '_개발Features';
+  if (reportType === 'testcases') return '_품질sanity';
+  return '_기획서'; // executive, team, 기타
 }
 
 interface ReportViewerProps {
@@ -14,18 +22,28 @@ interface ReportViewerProps {
   lang: Language;
   /** popup: 모달 팝업, fullscreen: 전체 화면 (기본) */
   variant?: 'popup' | 'fullscreen';
+  /** 첨부한 원본 파일명 (확장자 제외 후 접미사 붙여 다운로드 파일명 생성) */
+  fileName?: string;
+  /** 생성된 보고서 유형 (기획서/개발Features/품질sanity 접미사 결정) */
+  reportType?: ReportType | null;
 }
 
-export function ReportViewer({ htmlContent, onClose, lang, variant = 'fullscreen' }: ReportViewerProps) {
+export function ReportViewer({ htmlContent, onClose, lang, variant = 'fullscreen', fileName, reportType }: ReportViewerProps) {
   const t = translations[lang].viewer;
   const processedHtml = useMemo(() => stripDuplicateCheckmarks(htmlContent), [htmlContent]);
+
+  const downloadFileName = useMemo(() => {
+    const base = (fileName || 'report').replace(/\.[^.]+$/i, '').trim() || 'report';
+    const suffix = getReportDownloadSuffix(reportType ?? null);
+    return `${base}${suffix}.html`;
+  }, [fileName, reportType]);
 
   const handleDownload = () => {
     const blob = new Blob([processedHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'DocMaster_Report.html';
+    a.download = downloadFileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

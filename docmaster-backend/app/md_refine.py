@@ -116,6 +116,57 @@ def _trim_excessive_blank_lines(text: str, max_consecutive: int = 2) -> str:
     return re.sub(pattern, "\n" * max_consecutive, text)
 
 
+def _remove_standalone_page_numbers(text: str) -> str:
+    """단독 페이지 번호 줄 제거 (예: '1', ' 2 ', 'Page 3 of 10')."""
+    lines = text.split("\n")
+    out: List[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if re.match(r"^\d+$", stripped):
+            continue
+        if re.match(r"^Page\s+\d+\s+of\s+\d+$", stripped, re.IGNORECASE):
+            continue
+        if re.match(r"^\d+\s*/\s*\d+$", stripped):
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
+def _remove_consecutive_duplicate_lines(text: str) -> str:
+    """연속으로 동일한 줄이 반복되면 하나만 유지."""
+    lines = text.split("\n")
+    out: List[str] = []
+    prev = None
+    for line in lines:
+        if line == prev:
+            continue
+        prev = line
+        out.append(line)
+    return "\n".join(out)
+
+
+def _remove_noise_footer_lines(text: str) -> str:
+    """문서 끝/블록 끝에 자주 나오는 노이즈 한 줄 제거 (비밀문서·저작권 등)."""
+    noise_patterns = [
+        r"^\s*Confidential\s*$",
+        r"^\s*Internal\s+Use\s+Only\s*$",
+        r"^\s*©\s*[\d\s\-,\w\.]+\s*$",
+        r"^\s*All\s+rights\s+reserved\.?\s*$",
+        r"^\s*Proprietary\s+and\s+confidential\.?\s*$",
+    ]
+    lines = text.split("\n")
+    out: List[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            out.append(line)
+            continue
+        if any(re.match(p, stripped, re.IGNORECASE) for p in noise_patterns):
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
 def refine_extracted_markdown(raw_md: str) -> str:
     """
     추출된 마크다운에 1차 정제 규칙을 적용합니다.
@@ -127,6 +178,9 @@ def refine_extracted_markdown(raw_md: str) -> str:
     4. 반복 푸터 후보 식별 후 블록 끝에서만 제거
     5. 버전만 나열된 블록 축약
     6. 과다 빈 줄 정리
+    7. 단독 페이지 번호 줄 제거
+    8. 연속 중복 줄 제거
+    9. 노이즈 푸터 문구(Confidential 등) 제거
 
     원문 훼손 최소: 확실한 노이즈만 제거하고 애매하면 유지합니다.
     """
@@ -144,5 +198,8 @@ def refine_extracted_markdown(raw_md: str) -> str:
 
     text = _collapse_version_only_blocks(text, min_consecutive=5)
     text = _trim_excessive_blank_lines(text, max_consecutive=2)
+    text = _remove_standalone_page_numbers(text)
+    text = _remove_consecutive_duplicate_lines(text)
+    text = _remove_noise_footer_lines(text)
 
     return text.strip()

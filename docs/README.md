@@ -12,11 +12,12 @@
 | **05-report-flow-analysis-ko.md** | 기획서 기반 보고서 2단계 파이프라인·템플릿 변수·검증 흐름 |
 | **06-md-quality-n-rounds-ko.md** | 정리 md 품질·N회차 검토 |
 | **07-html-template-handling-ko.md** | HTML 템플릿 처리 방식(변수 채우기 vs 스타일 가이드) |
-| **08-customization-question-flow-ko.md** | 맞춤 질문(의도 반영) 플로우 |
+| **08-customization-question-flow-ko.md** | 맞춤 질문(원문→질문 먼저→선택 시 정리 md 1회) 플로우 |
 | **08-refined-md-latency-ko.md** | 정리 md 레이턴시 |
 | **09-faq-reasoning-html-slides-ko.md** | FAQ: reasoning, HTML, 슬라이드 |
 | **10-report-generation-latency-ko.md** | 보고서 생성 지연 원인·개선 방안 |
 | **11-refined-md-vs-html-variables-ko.md** | 정리 md vs HTML 변수 |
+| **12-recent-updates-ko.md** | 최근 변경 사항(질문 플로우, 기본 템플릿, 다운로드 파일명 등) |
 | **user-manual.html** | 사용자 메뉴얼 (HTML, 기획자·사용자 대상) |
 | **GITHUB_SETUP.md** | GitHub 설정 |
 
