@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DocMaster AI User Manual</title>
+  <style>
+    :root { --accent: #4f46e5; --accent-light: #eef2ff; --text: #1e293b; --text-muted: #64748b; --border: #e2e8f0; --bg: #f8fafc; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--text); line-height: 1.65; margin: 0; background: var(--bg); }
+    .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+    h1 { font-size: 1.75rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; margin-top: 0; }
+    h2 { font-size: 1.35rem; color: var(--text); margin-top: 2.5rem; margin-bottom: 0.75rem; }
+    h3 { font-size: 1.1rem; color: var(--text); margin-top: 1.5rem; margin-bottom: 0.5rem; }
+    p { margin: 0.5rem 0 1rem; }
+    ul, ol { margin: 0.5rem 0 1rem; padding-left: 1.5rem; }
+    li { margin: 0.25rem 0; }
+    .toc { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; margin: 1.5rem 0; }
+    .toc h2 { margin-top: 0; font-size: 1.15rem; }
+    .toc ul { list-style: none; padding-left: 0; margin: 0.5rem 0 0; }
+    .toc li { margin: 0.35rem 0; }
+    .toc a { color: var(--accent); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    .screenshot { width: 100%; max-width: 720px; border-radius: 12px; margin: 1rem 0; }
+    .screenshot.as-placeholder { aspect-ratio: 16/10; background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.95rem; }
+    .screenshot-caption { font-size: 0.85rem; color: var(--text-muted); margin-top: -0.5rem; margin-bottom: 1rem; }
+    .screenshot.replace { border: 2px dashed var(--accent); background: var(--accent-light); color: var(--accent); }
+    .flow-diagram { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin: 1rem 0; min-height: 320px; }
+    .flow-diagram .mermaid { display: flex; justify-content: center; }
+    .flow-diagram .mermaid svg { max-width: 100%; height: auto; }
+    .screenshot-wrap { position: relative; }
+    .screenshot-wrap .hide { display: none !important; }
+    .screenshot-wrap img.manual-img { display: block; max-width: 100%; height: auto; }
+    .screenshot-wrap img.manual-img.failed { display: none; }
+    .screenshot-wrap .as-placeholder { display: none; }
+    .screenshot-wrap .as-placeholder.show { display: flex; }
+    .note { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 0.75rem 1rem; margin: 1rem 0; font-size: 0.9rem; }
+    .tip { background: #d1fae5; border: 1px solid #10b981; border-radius: 8px; padding: 0.75rem 1rem; margin: 1rem 0; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+    th { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+    code { background: #f1f5f9; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.88em; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+    @media print { .container { max-width: 100%; } .screenshot.replace { border-style: solid; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>DocMaster AI User Manual</h1>
+    <p><strong>Audience:</strong> Planners, end users | <strong>Purpose:</strong> How to use the service, screen-by-screen behavior, tips.</p>
+
+    <nav class="toc" aria-label="Table of contents">
+      <h2>Contents</h2>
+      <ul>
+        <li><a href="#overview">1. Overview &amp; flow</a></li>
+        <li><a href="#prep">2. Before you start (Key setup)</a></li>
+        <li><a href="#step1">3. Step 1 — Upload &amp; extract</a></li>
+        <li><a href="#step2">4. Step 2 — Document type &amp; report generation</a></li>
+        <li><a href="#customization">4.1 Custom questions (intent)</a></li>
+        <li><a href="#viewer">5. View &amp; download report</a></li>
+        <li><a href="#prompt">6. Prompt editing</a></li>
+        <li><a href="#template">7. Template management</a></li>
+        <li><a href="#tips">8. Tips</a></li>
+        <li><a href="#policy">9. Policy summary</a></li>
+      </ul>
+    </nav>
+
+    <h2 id="overview">1. Overview &amp; flow</h2>
+    <p>DocMaster AI uploads <strong>PDF or PPTX</strong> files, extracts text and tables, and generates <strong>reports, dev feature lists, or test cases</strong> based on your selection.</p>
+    <h3>Flow</h3>
+    <ol>
+      <li><strong>Before start:</strong> Register your LLM API key in [Key settings] (top right).</li>
+      <li><strong>Step 1:</strong> Upload a PDF or PPTX on the main screen. The server extracts and converts to markdown.</li>
+      <li><strong>Step 2:</strong> Choose document type (planning report / dev features / test cases). For reports, select executive or team style and HTML format, then click [Generate report].</li>
+      <li><strong>Custom questions (optional):</strong> For planning reports, after the first draft you may see 2–3 multiple-choice questions. Choose options and click [Apply &amp; continue] to refine, or [Skip] to generate HTML as-is.</li>
+      <li><strong>Result:</strong> View the report in the popup and download HTML or refined markdown.</li>
+    </ol>
+
+    <div class="flow-diagram" aria-label="Service flow diagram">
+      <pre class="mermaid">
+flowchart TB
+  subgraph prep["Before start"]
+    A["Key setup"]
+  end
+  subgraph step1["Step 1"]
+    B["PDF/PPTX upload"]
+    C["Extract and markdown"]
+    B --> C
+  end
+  subgraph step2["Step 2"]
+    D["Document type"]
+    D --> E["Planning report"]
+    D --> F["Dev features"]
+    D --> G["Test cases"]
+    E --> H["Executive/Team · HTML format"]
+    H --> I["Generate report"]
+    I --> J{"Custom Q?"}
+    J -->|Apply| K["Refine md then HTML"]
+    J -->|Skip| L["HTML"]
+    K --> L
+    F --> M["Generate features"]
+    G --> N["Generate test cases"]
+  end
+  subgraph result["Result"]
+    O["View · Download HTML/md"]
+  end
+  A --> B
+  C --> D
+  L --> O
+  M --> O
+  N --> O
+      </pre>
+    </div>
+    <p class="screenshot-caption">Figure 1. Service flow</p>
+
+    <hr>
+
+    <h2 id="prep">2. Before you start (Key setup)</h2>
+    <p>Report generation uses external LLM APIs (OpenAI, Anthropic, Google). Enter your API key and select an LLM in <strong>[Key settings]</strong> (top right).</p>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img1.png" alt="Main screen — Key settings" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder">[ Screenshot: Key settings ]</div>
+    </div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img2.png" alt="Settings modal" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder">[ Screenshot: API key modal ]</div>
+    </div>
+    <p>API keys are stored only in the browser (Local Storage). Only extracted text is sent to the selected LLM when generating reports.</p>
+
+    <hr>
+
+    <h2 id="step1">3. Step 1 — Upload &amp; extract</h2>
+    <p>Drag and drop or click to select a PDF or PPTX in the <strong>upload area</strong>. Supported formats: PDF, PPTX only. Files are deleted from the server after extraction.</p>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img3.png" alt="Upload area" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder">[ Screenshot: Upload area ]</div>
+    </div>
+
+    <hr>
+
+    <h2 id="step2">4. Step 2 — Document type &amp; report generation</h2>
+    <p>After extraction you see <strong>Step 1 complete</strong>, a preview, and three cards: <strong>Planning report</strong>, <strong>Dev features</strong>, <strong>Test cases</strong>. Choose report style (Executive / Team) and HTML format, then click [Generate report] or [Generate].</p>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img4.png" alt="Document type cards" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder">[ Screenshot: Cards ]</div>
+    </div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img5.png" alt="Report options" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder">[ Screenshot: Report options ]</div>
+    </div>
+    <p>HTML formats: Proposal style, Presentation style, Preformat. Refined md is reused when you only change the HTML format.</p>
+
+    <hr>
+
+    <h2 id="customization">4.1 Custom questions (intent)</h2>
+    <p>For planning reports, after the first draft you may see 2–3 multiple-choice questions. Pick options and [Apply &amp; continue] to refine, or [Skip] to generate HTML as-is.</p>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img6.png" alt="Custom questions modal" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder">[ Screenshot: Custom questions ]</div>
+    </div>
+
+    <hr>
+
+    <h2 id="viewer">5. View &amp; download report</h2>
+    <p>Click [View report] to open the HTML in a popup. Mermaid diagrams in the report are rendered. You can download HTML or refined .md.</p>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img7.png" alt="Report viewer" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder">[ Screenshot: Report viewer ]</div>
+    </div>
+
+    <hr>
+
+    <h2 id="prompt">6. Prompt editing</h2>
+    <p>On each card, [Edit prompt] opens a modal to edit prompts for that type. Saved to Local Storage.</p>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img8.png" alt="Prompt edit modal" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder">[ Screenshot: Prompt modal ]</div>
+    </div>
+
+    <hr>
+
+    <h2 id="template">7. Template management</h2>
+    <p>[Template management] (top right) lets you view and edit HTML templates (proposal, presentation, preformat, test cases, dev features).</p>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img9.png" alt="Template modal" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder">[ Screenshot: Template modal ]</div>
+    </div>
+
+    <hr>
+
+    <h2 id="tips">8. Tips</h2>
+    <ul>
+      <li>Register API key and test connection before uploading.</li>
+      <li>Executive = short summary; Team = detailed with owners and dates.</li>
+      <li>High quality = extra review rounds (more time and cost).</li>
+      <li>Same extraction + same report type: change only HTML format to reuse refined md.</li>
+      <li>Use [Edit prompt] to customize terminology and required sections.</li>
+    </ul>
+
+    <hr>
+
+    <h2 id="policy">9. Policy summary</h2>
+    <table>
+      <thead><tr><th>Item</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>File storage</td><td>Uploaded PDF/PPTX are deleted after extraction; not stored on the server.</td></tr>
+        <tr><td>API</td><td>Only extracted text is sent to the selected LLM provider. Original files are not sent.</td></tr>
+        <tr><td>Settings</td><td>API key and prompts are stored in the browser only.</td></tr>
+        <tr><td>Downloads</td><td>Reports and .md are generated in the browser; not stored on the server.</td></tr>
+      </tbody>
+    </table>
+
+    <p style="margin-top:2rem; font-size:0.9rem; color:var(--text-muted);">— DocMaster AI User Manual —</p>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: { primaryColor: '#eef2ff', primaryTextColor: '#1e293b', primaryBorderColor: '#4f46e5', lineColor: '#4f46e5', secondaryColor: '#f8fafc' } });
+  </script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Live demo:** [https://doc-master-ai-wsjo.vercel.app/](https://doc-master-ai-wsjo.vercel.app/)  
+**Live demo:** [https://doc-master-ai.vercel.app/](https://doc-master-ai.vercel.app/)  
 *(프론트·백엔드 모두 Vercel에 배포하면, 사용자는 Git/로컬 실행 없이 데모만으로 사용 가능.)*
 
 > 💡 **Useful?** Consider giving the repo a **star** so others can find it.
@@ -29,9 +29,9 @@ DocMaster는 다음 **세 가지**를 지키려고 설계되었습니다.
 
 | Upload & Extract | Report (Executive / Team) |
 |------------------|---------------------------|
-| *Add a screenshot of the upload/settings screen* | *Add a screenshot of the generated report* |
+| [![업로드·설정 화면](https://doc-master-ai.vercel.app/user-manual/images/img1.png)](https://doc-master-ai.vercel.app/user-manual/user-manual.html) | [![보고서 뷰어](https://doc-master-ai.vercel.app/user-manual/images/img7.png)](https://doc-master-ai.vercel.app/user-manual/user-manual.html) |
 
-*(스크린샷이나 GIF를 추가하면 검색·첫인상에 도움이 됩니다. `docs/` 또는 README에 이미지 링크 추가.)*
+*이미지: [doc-master-ai.vercel.app](https://doc-master-ai.vercel.app/user-manual/images/) (img1: 메인·Key 설정, img7: 보고서 뷰어). 클릭 시 사용자 메뉴얼로 이동.*
 
 ---
 
@@ -85,7 +85,7 @@ Open **http://localhost:5173**. In **Settings**, add your LLM API key and choose
 ### 1) 프론트엔드
 
 - **Root Directory**: `docmaster-web`
-- **URL**: 예) https://doc-master-ai-wsjo.vercel.app (또는 본인 도메인)
+- **URL**: 예) https://doc-master-ai.vercel.app (또는 본인 도메인)
 
 ### 2) 백엔드
 
@@ -93,7 +93,7 @@ Open **http://localhost:5173**. In **Settings**, add your LLM API key and choose
 2. **Root Directory**를 `docmaster-backend`로 지정.
 3. **Framework Preset**: Other (또는 Python)  
    - `docmaster-backend`에는 `vercel.json`과 `api/` 서버리스 진입점이 있어 FastAPI가 서버리스로 배포됩니다. `/api/templates`, `/api/templates/:id`는 `vercel.json` rewrites로 `/api`(index)에 연결됩니다.
-4. Deploy 후 나온 **백엔드 URL**을 복사 (예: `https://doc-master-ai-wsjo.vercel.app`가 백엔드 전용이면 그 URL 사용).
+4. Deploy 후 나온 **백엔드 URL**을 복사 (예: `https://doc-master-ai.vercel.app`가 백엔드 전용이면 그 URL 사용).
 
 ### 3) 프론트엔드에서 백엔드 URL 연결
 

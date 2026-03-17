@@ -18,7 +18,7 @@
 | **10-report-generation-latency-ko.md** | 보고서 생성 지연 원인·개선 방안 |
 | **11-refined-md-vs-html-variables-ko.md** | 정리 md vs HTML 변수 |
 | **12-recent-updates-ko.md** | 최근 변경 사항: 질문 플로우, HTML 형식 3종만 유지·PPT 제거, 정리 md 재사용, Mermaid 추출·뷰어, 정리 md 뷰어(표·블릿)·거절 감지 등 |
-| **user-manual.html** | 사용자 메뉴얼 (HTML, 기획자·사용자 대상) — Step 2 HTML 형식 3종, 정리 md 재사용·Mermaid·뷰어 안내 반영 |
+| **user-manual** | 사용자 메뉴얼은 <code>docmaster-web/public/user-manual/</code>에 있으며, 앱 실행 시 <code>http://localhost:5173/user-manual/user-manual.html</code> 로 제공됩니다. |
 | **GITHUB_SETUP.md** | GitHub 설정 |
 
-앱 내 **도움말 → 온보딩 메뉴얼**과 **user-manual.html**은 동일한 이용 방법·HTML 형식 3종(기획/제안서 스타일, 프레젠테이션 스타일, 프리포맷)·정리 md 재사용·Mermaid·정리 md 뷰어(표·블릿)·HTML 실패·거절 시 안내를 반영합니다.
+앱 내 **도움말 → 온보딩 메뉴얼**과 **사용자 메뉴얼**(<code>http://localhost:5173/user-manual/user-manual.html</code>)은 동일한 이용 방법·HTML 형식 3종(기획/제안서 스타일, 프레젠테이션 스타일, 프리포맷)·정리 md 재사용·Mermaid·정리 md 뷰어(표·블릿)·HTML 실패·거절 시 안내를 반영합니다.

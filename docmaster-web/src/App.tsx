@@ -659,7 +659,7 @@ function App() {
             <User size={14} className="text-slate-400" />
             <span className="text-xs font-medium uppercase tracking-wider">{t.sidebar.developerTitle}</span>
           </div>
-          <p className="text-sm font-medium text-slate-700">
+          <p className="text-sm font-medium text-slate-700 flex flex-wrap items-center gap-x-2 gap-y-1">
             <button
               type="button"
               onClick={() => {
@@ -670,6 +670,14 @@ function App() {
               className="text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
             >
               {t.sidebar.developerName}
+            </button>
+            <span className="text-slate-300">·</span>
+            <button
+              type="button"
+              onClick={() => window.open(lang === 'ko' ? '/user-manual/user-manual.html' : '/user-manual/user-manual-en.html', '_blank', 'noopener,noreferrer,width=960,height=800')}
+              className="text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+            >
+              {t.sidebar.serviceDescriptionLink}
             </button>
           </p>
           <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">

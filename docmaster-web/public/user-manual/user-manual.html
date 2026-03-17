@@ -21,9 +21,19 @@
     .toc li { margin: 0.35rem 0; }
     .toc a { color: var(--accent); text-decoration: none; }
     .toc a:hover { text-decoration: underline; }
-    .screenshot { width: 100%; max-width: 720px; aspect-ratio: 16/10; background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.95rem; margin: 1rem 0; }
+    .screenshot { width: 100%; max-width: 720px; border-radius: 12px; margin: 1rem 0; }
+    .screenshot.as-placeholder { aspect-ratio: 16/10; background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.95rem; }
     .screenshot-caption { font-size: 0.85rem; color: var(--text-muted); margin-top: -0.5rem; margin-bottom: 1rem; }
     .screenshot.replace { border: 2px dashed var(--accent); background: var(--accent-light); color: var(--accent); }
+    .flow-diagram { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin: 1rem 0; min-height: 320px; }
+    .flow-diagram .mermaid { display: flex; justify-content: center; }
+    .flow-diagram .mermaid svg { max-width: 100%; height: auto; }
+    .screenshot-wrap { position: relative; }
+    .screenshot-wrap .hide { display: none !important; }
+    .screenshot-wrap img.manual-img { display: block; max-width: 100%; height: auto; }
+    .screenshot-wrap img.manual-img.failed { display: none; }
+    .screenshot-wrap .as-placeholder { display: none; }
+    .screenshot-wrap .as-placeholder.show { display: flex; }
     .note { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 0.75rem 1rem; margin: 1rem 0; font-size: 0.9rem; }
     .tip { background: #d1fae5; border: 1px solid #10b981; border-radius: 8px; padding: 0.75rem 1rem; margin: 1rem 0; }
     table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
@@ -38,12 +48,7 @@
 <body>
   <div class="container">
     <h1>DocMaster AI 사용자 메뉴얼</h1>
-    <p><strong>대상:</strong> 기획자·사용자 | <strong>목적:</strong> 서비스 사용 방법, 화면별 동작, 이용 팁</p>
-
-    <div class="note">
-      <strong>스크린샷 안내</strong><br>
-      본 메뉴얼의 스크린샷은 플레이스홀더입니다. 실제 사용 시에는 각 화면을 캡처한 이미지로 교체해 주세요. 교체 시 해당 영역의 <code>&lt;div class="screenshot"&gt;</code>를 <code>&lt;img src="images/파일명.png" alt="설명" style="width:100%; max-width:720px; border-radius:12px;"&gt;</code> 형태로 바꾸거나, 플레이스홀더 div 안에 <code>&lt;img&gt;</code>를 넣어 주세요. 이미지 폴더 예: <code>docs/user-manual/images/</code>
-    </div>
+    
 
     <nav class="toc" aria-label="목차">
       <h2>목차</h2>
@@ -73,8 +78,42 @@
       <li><strong>결과 확인:</strong> 생성이 끝나면 보고서 보기 팝업에서 HTML을 확인하고, HTML·정리 md 다운로드가 가능합니다.</li>
     </ol>
 
-    <div class="screenshot replace" id="img-flow">[ 스크린샷: 전체 플로우 요약 다이어그램 (선택) ]</div>
-    <p class="screenshot-caption">그림 1. 전체 플로우 요약 (선택 사항)</p>
+    <div class="flow-diagram" id="img-flow" aria-label="서비스 전체 사용 흐름 다이어그램">
+      <pre class="mermaid">
+flowchart TB
+  subgraph prep["시작 전"]
+    A["Key 설정<br/>API 키 등록"]
+  end
+  subgraph step1["Step 1"]
+    B["PDF/PPTX 업로드"]
+    C["서버 추출 · 마크다운 변환"]
+    B --> C
+  end
+  subgraph step2["Step 2"]
+    D["문서 유형 선택"]
+    D --> E["기획서 기반 보고서"]
+    D --> F["개발 피처 목록"]
+    D --> G["테스트 케이스"]
+    E --> H["경영진/실무 · HTML 형식 선택"]
+    H --> I["보고서 생성"]
+    I --> J{"맞춤 질문<br/>표시?"}
+    J -->|반영| K["정리 md 보강 후 HTML 생성"]
+    J -->|건너뛰기| L["HTML 생성"]
+    K --> L
+    F --> M["개발 피처 생성"]
+    G --> N["테스트 케이스 생성"]
+  end
+  subgraph result["결과"]
+    O["보고서 보기 · HTML/정리 md 다운로드"]
+  end
+  A --> B
+  C --> D
+  L --> O
+  M --> O
+  N --> O
+      </pre>
+    </div>
+    <p class="screenshot-caption">그림 1. 서비스 전체 사용 흐름</p>
 
     <hr>
 
@@ -82,10 +121,16 @@
     <h2 id="prep">2. 시작 전 준비 (Key 설정)</h2>
     <p>보고서 생성은 외부 LLM(OpenAI, Anthropic, Google 등) API를 사용합니다. 반드시 <strong>우측 상단 [Key 설정]</strong>에서 API 키를 입력하고, 사용할 LLM을 선택해야 합니다.</p>
 
-    <div class="screenshot replace" id="img-settings">[ 스크린샷: 메인 화면 우측 상단 — Key 설정 버튼 위치 ]</div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img1.png" alt="메인 화면 우측 상단 — Key 설정 버튼 위치" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder" id="ph-settings">[ 스크린샷: 메인 화면 우측 상단 — Key 설정 버튼 위치 ]<br><small>생성: docmaster-web에서 node scripts/capture-manual-screenshots.mjs</small></div>
+    </div>
     <p class="screenshot-caption">그림 2. 메인 화면 상단 (Key 설정 버튼)</p>
 
-    <div class="screenshot replace" id="img-settings-modal">[ 스크린샷: 설정(Key 설정) 모달 전체 — API 키 탭 ]</div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img2.png" alt="설정(Key 설정) 모달 — API 키 탭" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder" id="ph-settings-modal">[ 스크린샷: 설정 모달 — API 키 화면 ]</div>
+    </div>
     <p class="screenshot-caption">그림 3. 설정 모달 — API 키 화면</p>
 
     <h3>설정 화면 정책</h3>
@@ -111,7 +156,10 @@
     <h2 id="step1">3. Step 1 — 파일 업로드 &amp; 추출</h2>
     <p>메인 화면 중앙의 <strong>업로드 영역</strong>에 PDF 또는 PPTX 파일을 드래그 앤 드롭하거나, 영역을 클릭해 파일을 선택합니다.</p>
 
-    <div class="screenshot replace" id="img-upload">[ 스크린샷: 메인 화면 — 업로드 영역 (클릭 또는 드래그 앤 드롭) ]</div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img3.png" alt="메인 화면 — 업로드 영역" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder" id="ph-upload">[ 스크린샷: 메인 화면 — 업로드 영역 (클릭 또는 드래그 앤 드롭) ]</div>
+    </div>
     <p class="screenshot-caption">그림 4. Step 1 — 업로드 영역</p>
 
     <h3>정책</h3>
@@ -136,7 +184,10 @@
     <h2 id="step2">4. Step 2 — 문서 유형 선택 &amp; 보고서 생성</h2>
     <p>추출이 끝나면 <strong>Step 1 완료</strong> 배너와 <strong>추출 콘텐츠 미리보기</strong>, 그 아래 <strong>「어떤 문서를 만들까요?」</strong> 카드 3종이 표시됩니다.</p>
 
-    <div class="screenshot replace" id="img-cards">[ 스크린샷: Step 2 — 기획서 기반 보고서 / 개발 피처 목록 / 테스트 케이스 카드 3종 ]</div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img4.png" alt="Step 2 — 문서 유형 선택 카드 3종" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder" id="ph-cards">[ 스크린샷: Step 2 — 기획서 기반 보고서 / 개발 피처 목록 / 테스트 케이스 카드 3종 ]</div>
+    </div>
     <p class="screenshot-caption">그림 5. 문서 유형 선택 카드</p>
 
     <h3>문서 유형(카드)별 동작</h3>
@@ -151,7 +202,10 @@
 
     <p>각 카드의 <strong>[프롬프트 편집]</strong> 버튼을 누르면 해당 유형의 프롬프트(역할·규칙·Step)를 편집할 수 있습니다. 저장한 내용은 다음 생성부터 적용됩니다.</p>
 
-    <div class="screenshot replace" id="img-step2-panel">[ 스크린샷: Step 1 완료 배너 + 미리보기 + 경영진/실무 탭 + HTML 형식 + 고품질 + 보고서 생성 버튼 ]</div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img5.png" alt="Step 2 — 보고서 옵션 및 생성 버튼" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder" id="ph-step2-panel">[ 스크린샷: Step 1 완료 배너 + 미리보기 + 경영진/실무 탭 + HTML 형식 + 고품질 + 보고서 생성 버튼 ]</div>
+    </div>
     <p class="screenshot-caption">그림 6. Step 2 — 보고서 옵션 및 생성 버튼</p>
 
     <h3>보고서 유형 선택 시 항목·버튼</h3>
@@ -176,7 +230,10 @@
     <h2 id="customization">4.1 맞춤 질문 (의도 반영)</h2>
     <p><strong>기획서 기반 보고서</strong>를 선택하고 [보고서 생성]을 누르면, 정리 초안이 만들어진 뒤 <strong>「맞춤 질문」</strong> 팝업이 뜨는 경우가 있습니다. 초안 내용을 바탕으로 "어떤 포인트를 강조·구체화할지" 2~3개의 다지선다 질문이 표시됩니다.</p>
 
-    <div class="screenshot replace" id="img-customization">[ 스크린샷: 맞춤 질문 모달 — 질문 2~3개, 선택지, 건너뛰기 / 반영하여 계속 버튼 ]</div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img6.png" alt="맞춤 질문 모달" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder" id="ph-customization">[ 스크린샷: 맞춤 질문 모달 — 질문 2~3개, 선택지, 건너뛰기 / 반영하여 계속 버튼 ]</div>
+    </div>
     <p class="screenshot-caption">그림 6-1. 맞춤 질문 모달</p>
 
     <h3>정책</h3>
@@ -205,7 +262,10 @@
     <h2 id="viewer">5. 보고서 보기 &amp; 다운로드</h2>
     <p>[만들어진 보고서 보기]를 누르면 생성된 HTML 보고서가 팝업(또는 전체 화면)으로 표시됩니다. 보고서 HTML 안에 Mermaid 다이어그램 코드가 있으면 자동으로 <strong>다이어그램으로 렌더</strong>됩니다. <strong>HTML 생성이 실패했지만 정리 md가 있는 경우</strong>에는 해당 정리 md가 뷰어에 표시되거나, Step 2 패널에서 「정리 내용 (.md) 다운로드」로 받을 수 있습니다. 모델이 요청을 거절한 경우에는 안내 메시지와 함께 정리 md 다운로드가 권장됩니다.</p>
 
-    <div class="screenshot replace" id="img-viewer">[ 스크린샷: 보고서 뷰어 — 상단 헤더 + HTML 내용 영역 ]</div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img7.png" alt="보고서 뷰어" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder" id="ph-viewer">[ 스크린샷: 보고서 뷰어 — 상단 헤더 + HTML 내용 영역 ]</div>
+    </div>
     <p class="screenshot-caption">그림 7. 보고서 뷰어</p>
 
     <h3>버튼별 동작</h3>
@@ -225,7 +285,10 @@
     <h2 id="prompt">6. 프롬프트 편집</h2>
     <p>「어떤 문서를 만들까요?」 카드에서 [프롬프트 편집]을 누르면, 해당 유형(기획서 기반 보고서 / 개발 피처 / 테스트 케이스)의 프롬프트를 편집하는 모달이 열립니다.</p>
 
-    <div class="screenshot replace" id="img-prompt-modal">[ 스크린샷: 프롬프트 편집 모달 — 경영진용/실무용 탭, 편집 가능 영역, HTML 출력 시 자동 적용(수정 불가) 영역 ]</div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img8.png" alt="프롬프트 편집 모달" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder" id="ph-prompt-modal">[ 스크린샷: 프롬프트 편집 모달 — 경영진용/실무용 탭, 편집 가능 영역, HTML 출력 시 자동 적용(수정 불가) 영역 ]</div>
+    </div>
     <p class="screenshot-caption">그림 8. 프롬프트 편집 모달 (보고서 유형)</p>
 
     <h3>정책</h3>
@@ -250,7 +313,10 @@
     <h2 id="template">7. 템플릿 관리</h2>
     <p>우측 상단 [템플릿 관리]를 누르면 HTML 템플릿(기획/제안서 스타일, 프레젠테이션 스타일, 프리포맷, 테스트 케이스, 개발 피처)을 확인·관리할 수 있습니다. 기획서 기반 보고서용은 스타일 가이드 기반으로 LLM이 HTML 전체를 생성합니다. 테스트 케이스·개발 피처용 템플릿은 API에서 불러오며, API가 없거나 404일 때는 앱 내 기본값이 사용됩니다.</p>
 
-    <div class="screenshot replace" id="img-template">[ 스크린샷: 템플릿 관리 모달 ]</div>
+    <div class="screenshot-wrap">
+      <img src="/user-manual/images/img9.png" alt="템플릿 관리 모달" class="screenshot manual-img" width="720" onerror="this.classList.add('failed'); this.nextElementSibling.classList.add('show')">
+      <div class="screenshot replace as-placeholder" id="ph-template">[ 스크린샷: 템플릿 관리 모달 ]</div>
+    </div>
     <p class="screenshot-caption">그림 9. 템플릿 관리</p>
 
     <p>자세한 내용은 <code>docs/07-html-template-handling-ko.md</code>를 참고하세요.</p>
@@ -289,5 +355,9 @@
 
     <p style="margin-top:2rem; font-size:0.9rem; color:var(--text-muted);">— DocMaster AI 사용자 메뉴얼 (HTML) —</p>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: { primaryColor: '#eef2ff', primaryTextColor: '#1e293b', primaryBorderColor: '#4f46e5', lineColor: '#4f46e5', secondaryColor: '#f8fafc' } });
+  </script>
 </body>
 </html>
