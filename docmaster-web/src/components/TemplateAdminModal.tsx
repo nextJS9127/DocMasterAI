@@ -14,12 +14,11 @@ import {
 } from '../lib/llmClient';
 import { translations } from '../lib/translations';
 
-const BUILTIN_IDS: string[] = ['phase1', 'presentation2', 'wiki', 'preformat', 'testcases', 'features'];
+const BUILTIN_IDS: string[] = ['phase1', 'presentation2', 'preformat', 'testcases', 'features'];
 
 const TEMPLATE_LABEL_KEYS: Record<string, keyof typeof translations.ko.templateAdmin> = {
   phase1: 'templateLabelPhase1',
   presentation2: 'templateLabelPresentation2',
-  wiki: 'templateLabelWiki',
   preformat: 'templateLabelPreformat',
   testcases: 'templateLabelTestcases',
   features: 'templateLabelFeatures',
@@ -29,7 +28,6 @@ const TEMPLATE_LABEL_KEYS: Record<string, keyof typeof translations.ko.templateA
 const TEMPLATE_CATEGORY_KEYS: Record<string, keyof typeof translations.ko.templateAdmin> = {
   phase1: 'templateCategoryReport',
   presentation2: 'templateCategoryReport',
-  wiki: 'templateCategoryReport',
   preformat: 'templateCategoryReport',
   testcases: 'templateCategoryQuality',
   features: 'templateCategoryDev',

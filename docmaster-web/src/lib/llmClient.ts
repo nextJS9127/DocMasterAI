@@ -11,6 +11,7 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { marked } from 'marked';
 
 import {
     DEFAULT_PROMPT_EXECUTIVE_EDITABLE,
@@ -98,6 +99,59 @@ export function getProviderForApiKey(selection: string): 'openai' | 'claude' | '
     return mapped ? mapped.provider : (selection === 'claude' || selection === 'gemini' ? selection : 'openai');
 }
 
+/** LLM이 요청을 거절했을 때 반환하는 문구인지 판별. 오탐 방지를 위해 '응답 앞부분' 또는 '전체가 짧을 때'만 거절로 본다. */
+export function isLlmRefusalContent(htmlOrText: string): boolean {
+    if (!htmlOrText || typeof htmlOrText !== 'string') return false;
+    const stripped = htmlOrText
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    if (stripped.length > 600) return false; // 본문이 길면 보고서로 간주
+    const refusalPatterns = [
+        "i'm sorry, but i can't assist",
+        "i can't assist with that",
+        "i am unable to assist",
+        "i'm not able to assist",
+        "cannot assist with that",
+        "sorry, i can't",
+        "sorry, i am unable",
+        "죄송합니다만 해당 요청",
+        "요청을 처리할 수 없습니다",
+        "도와드릴 수 없습니다",
+    ];
+    const hasRefusal = refusalPatterns.some((p) => stripped.includes(p));
+    if (!hasRefusal) return false;
+    // 거절로 보기: 전체가 짧음(대략 거절 문장 1~2개 수준) 이거나, 거절 문구가 앞 250자 안에 있음(API 응답 특성)
+    const head = stripped.slice(0, 250);
+    const refusalInHead = refusalPatterns.some((p) => head.includes(p));
+    return stripped.length <= 280 || refusalInHead;
+}
+
+/** 마크다운 문자열을 보고서용 HTML 문서 문자열로 변환 (모델이 \`\`\`html 대신 \`\`\`markdown 을 반환했을 때 폴백) */
+function markdownToReportHtml(md: string): string {
+    const body = (md || '').trim();
+    if (!body) return '';
+    const bodyHtml = marked.parse(body, { async: false }) as string;
+    const style = `
+body{font-family:'Pretendard',system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 16px;line-height:1.6;color:#1e293b;}
+h1{font-size:1.75rem;font-weight:700;margin:1.5rem 0 0.75rem;border-bottom:1px solid #e2e8f0;padding-bottom:0.5rem;}
+h2{font-size:1.35rem;font-weight:600;margin:1.25rem 0 0.5rem;}
+h3{font-size:1.15rem;font-weight:600;margin:1rem 0 0.5rem;}
+p{margin:0.5rem 0;}
+ul,ol{margin:0.5rem 0;padding-left:1.5rem;}
+li{margin:0.25rem 0;}
+table{border-collapse:collapse;width:100%;margin:0.75rem 0;}
+th,td{border:1px solid #e2e8f0;padding:0.5rem 0.75rem;text-align:left;}
+th{background:#f1f5f9;font-weight:600;}
+blockquote{border-left:4px solid #c7d2fe;margin:0.5rem 0;padding-left:1rem;color:#475569;}
+strong{font-weight:600;}
+code{background:#f1f5f9;padding:0.15rem 0.35rem;border-radius:4px;font-size:0.9em;}
+pre{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1rem;overflow-x:auto;}
+    `.trim();
+    return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Report</title><style>${style}</style></head><body>${bodyHtml}</body></html>`;
+}
+
 /** 현재 선택한 LLM + API 키로 최소 요청을 보내 연결·모델 정상 여부 확인 */
 export async function verifyLlmConnection(
     selection: string,
@@ -163,7 +217,7 @@ function estimateCostUsd(selectionOrProvider: string, inputTokens: number, outpu
 }
 
 /** API에서 HTML 템플릿 조회. 실패 시 기본 ID는 getTemplateForApi, testcases/features는 getXxxTemplateContent() 폴백. */
-const BUILTIN_TEMPLATE_IDS: HtmlTemplateId[] = ['phase1', 'presentation2', 'wiki', 'preformat'];
+const BUILTIN_TEMPLATE_IDS: HtmlTemplateId[] = ['phase1', 'presentation2', 'preformat'];
 function parseTemplateResponse(text: string): string {
     const trimmed = text.trim();
     if (trimmed.length === 0) return '';
@@ -176,7 +230,6 @@ function parseTemplateResponse(text: string): string {
     return trimmed;
 }
 export async function fetchTemplateFromApi(apiBaseUrl: string, templateId: string): Promise<string> {
-    if (templateId === 'pptx') return getTemplateForApi('pptx');
     const url = `${apiBaseUrl.replace(/\/+$/, '')}/api/templates/${templateId}`;
     try {
         const res = await fetch(url);
@@ -205,7 +258,6 @@ export async function fetchTemplateFromApi(apiBaseUrl: string, templateId: strin
 
 /** 어드민: 네트워크 없이 기본 템플릿 내용 즉시 반환 (로딩 대기 없이 에디터에 표시용). */
 export function getDefaultTemplateContentForAdmin(templateId: string): string {
-    if (templateId === 'pptx') return '';
     if (templateId === 'testcases') return getTestcasesTemplateContent();
     if (templateId === 'features') return getFeaturesTemplateContent();
     if (BUILTIN_TEMPLATE_IDS.includes(templateId as HtmlTemplateId))
@@ -252,7 +304,7 @@ export async function listTemplatesFromApi(apiBaseUrl: string): Promise<{ id: st
 /** 추가 템플릿 용도(보고서/개발/테스트) — localStorage 키 접두사. 템플릿 추가 시 선택한 용도 저장 */
 export const TEMPLATE_CATEGORY_STORAGE_KEY = 'docmaster_templateCategory_';
 export const TEMPLATE_TITLE_STORAGE_KEY = 'docmaster_templateTitle_';
-export const BUILTIN_REPORT_TEMPLATE_IDS: string[] = ['phase1', 'presentation2', 'wiki', 'preformat', 'pptx'];
+export const BUILTIN_REPORT_TEMPLATE_IDS: string[] = ['phase1', 'presentation2', 'preformat'];
 export const BUILTIN_DEV_TEMPLATE_IDS: string[] = ['features'];
 export const BUILTIN_TC_TEMPLATE_IDS: string[] = ['testcases'];
 
@@ -1155,9 +1207,6 @@ export async function generateHtmlFromMarkdownClient(
     apiBaseUrl?: string,
     highQuality = false
 ): Promise<{ html: string; usage?: ReportUsage }> {
-    if (templateId === 'pptx') {
-        throw new Error('generateHtmlFromMarkdownClient does not support pptx. Use generateReportClient for pptx.');
-    }
     const promptLang: PromptLang = localStorage.getItem('docmaster_lang') === 'en' ? 'en' : 'ko';
 
     // 테스트케이스·개발피처: [정리된 보고 내용] → HTML 블록 하나만 출력. 템플릿은 API 또는 로컬 기본값.
@@ -1225,7 +1274,18 @@ Reflect the **category list and feature table headers, column count, and order**
         const htmlStepMaxTokens = refinedMarkdown.length > REFINED_MD_CHARS_THRESHOLD ? HTML_STEP_MAX_TOKENS_LARGE : HTML_STEP_MAX_TOKENS;
         const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, htmlStepMaxTokens, false, { stream: true, useFastModel: true });
         const htmlMatch = fullBody.match(/```html\s*([\s\S]*?)```/i);
-        const html = htmlMatch ? htmlMatch[1].trim() : (fullBody.startsWith('```html') ? fullBody.replace(/^```html\s*/i, '').replace(/\s*```$/, '').trim() : fullBody.trim());
+        let html: string;
+        if (htmlMatch) {
+            html = htmlMatch[1].trim();
+        } else {
+            const mdMatch = fullBody.match(/```markdown\s*([\s\S]*?)```/i);
+            const rawMd = mdMatch ? mdMatch[1].trim() : (/^```markdown\s*/i.test(fullBody.trim()) ? fullBody.trim().replace(/^```markdown\s*/i, '').replace(/\s*```\s*$/, '').trim() : null);
+            if (rawMd && rawMd.length > 0) {
+                html = markdownToReportHtml(rawMd);
+            } else {
+                html = fullBody.startsWith('```html') ? fullBody.replace(/^```html\s*/i, '').replace(/\s*```$/, '').trim() : fullBody.trim();
+            }
+        }
         return { html, usage };
     }
 
@@ -1252,9 +1312,18 @@ Reflect the **category list and feature table headers, column count, and order**
     const htmlStepMaxTokens = refinedMarkdown.length > REFINED_MD_CHARS_THRESHOLD ? HTML_STEP_MAX_TOKENS_LARGE : HTML_STEP_MAX_TOKENS;
     const { fullBody, usage } = await callLlm(systemPrompt, userPrompt, selection, apiKey, htmlStepMaxTokens, highQuality, { stream: true, useFastModel: true });
     const htmlMatch = fullBody.match(/```html\s*([\s\S]*?)```/i);
-    const html = htmlMatch
-        ? htmlMatch[1].trim()
-        : (/^```html\s*/i.test(fullBody) ? fullBody.replace(/^```html\s*/i, '').replace(/\s*```\s*$/i, '').trim() : fullBody.trim());
+    let html: string;
+    if (htmlMatch) {
+        html = htmlMatch[1].trim();
+    } else {
+        const mdMatch = fullBody.match(/```markdown\s*([\s\S]*?)```/i);
+        const rawMd = mdMatch ? mdMatch[1].trim() : (/^```markdown\s*/i.test(fullBody.trim()) ? fullBody.trim().replace(/^```markdown\s*/i, '').replace(/\s*```\s*$/, '').trim() : null);
+        if (rawMd && rawMd.length > 0) {
+            html = markdownToReportHtml(rawMd);
+        } else {
+            html = /^```html\s*/i.test(fullBody) ? fullBody.replace(/^```html\s*/i, '').replace(/\s*```\s*$/i, '').trim() : fullBody.trim();
+        }
+    }
     return { html, usage };
 }
 
@@ -1444,75 +1513,6 @@ export async function generateReportClient(
         fullBodyLength: fullBody?.length ?? 0,
         fullBodyPreview: typeof fullBody === 'string' ? fullBody.slice(0, 200).replace(/\n/g, ' ') : '(없음)',
     });
-
-    const isPptx = templateId === 'pptx';
-    if (isPptx) {
-        type SlideInput = {
-            slideType?: string;
-            title?: string;
-            bullets?: string[];
-            tagline?: string;
-            label?: string;
-            headline?: string;
-            subHook?: string;
-            kicker?: string;
-            bottomInfo?: string;
-            cards?: Array<{ title?: string; items?: string[] }>;
-            metrics?: Array<{ value?: string; label?: string }>;
-            gridTitles?: string[];
-            gridBodies?: string[][];
-        };
-        let slides: GenerateReportResult['slides'] = [];
-        const jsonMatch = fullBody.match(/```(?:json)?\s*([\s\S]*?)```/);
-        const raw = jsonMatch ? jsonMatch[1].trim() : fullBody.trim();
-        try {
-            const parsed = JSON.parse(raw) as { slides?: SlideInput[] };
-            if (Array.isArray(parsed.slides)) {
-                slides = parsed.slides.map((s) => {
-                    const title = typeof s.title === 'string' ? s.title : 'Slide';
-                    const bullets = Array.isArray(s.bullets) ? s.bullets.map((b) => String(b)) : [];
-                    const out: NonNullable<GenerateReportResult['slides']>[number] = {
-                        slideType: typeof s.slideType === 'string' ? s.slideType : undefined,
-                        title,
-                        bullets: bullets.length ? bullets : undefined,
-                    };
-                    if (typeof s.tagline === 'string') out.tagline = s.tagline;
-                    if (typeof s.label === 'string') out.label = s.label;
-                    if (typeof s.headline === 'string') out.headline = s.headline;
-                    if (typeof s.subHook === 'string') out.subHook = s.subHook;
-                    if (typeof s.kicker === 'string') out.kicker = s.kicker;
-                    if (typeof s.bottomInfo === 'string') out.bottomInfo = s.bottomInfo;
-                    if (Array.isArray(s.cards) && s.cards.length > 0) {
-                        out.cards = s.cards.map((c) => ({
-                            title: typeof c.title === 'string' ? c.title : '',
-                            items: Array.isArray(c.items) ? c.items.map((i) => String(i)) : [],
-                        }));
-                    }
-                    if (Array.isArray(s.metrics) && s.metrics.length > 0) {
-                        out.metrics = s.metrics.map((m) => ({
-                            value: typeof m.value === 'string' ? m.value : String(m.value ?? ''),
-                            label: typeof m.label === 'string' ? m.label : '',
-                        }));
-                    }
-                    if (Array.isArray(s.gridTitles) && s.gridTitles.length >= 4) {
-                        out.gridTitles = [s.gridTitles[0], s.gridTitles[1], s.gridTitles[2], s.gridTitles[3]];
-                    }
-                    if (Array.isArray(s.gridBodies) && s.gridBodies.length >= 4) {
-                        out.gridBodies = [
-                            (s.gridBodies[0] ?? []).map(String),
-                            (s.gridBodies[1] ?? []).map(String),
-                            (s.gridBodies[2] ?? []).map(String),
-                            (s.gridBodies[3] ?? []).map(String),
-                        ];
-                    }
-                    return out;
-                });
-            }
-        } catch {
-            /* ignore parse error */
-        }
-        return { html: '', slides: slides.length ? slides : undefined, usage };
-    }
 
     // 정리된 내용(마크다운) + HTML 블록 추출 (순서: markdown 먼저, html 나중)
     let reportMarkdown: string | undefined;

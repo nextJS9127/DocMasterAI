@@ -12,7 +12,7 @@ export const DEFAULT_PROMPT_TESTCASES_EDITABLE = `# Role & Objective
 각 케이스는 **영역(모듈/기능)** · **단계(스텝)** · **조치(무엇을 하는지)** · **예상 결과**를 포함해야 합니다.
 
 # Input Data 규칙
-- [원천 데이터]: PDF/PPTX에서 추출된 마크다운입니다. [[TABLE]]/[[DIAGRAM]]이 있으면 표·흐름으로 반영하세요.
+- [원천 데이터]: PDF/PPTX에서 추출된 마크다운입니다. [[TABLE]]/[[DIAGRAM]]/[[MERMAID]]가 있으면 표·흐름·다이어그램으로 반영하세요.
 
 # Core Rules
 1. 원천 데이터에 없는 동작·결과를 만들지 마세요. 불명확한 부분은 [확인 필요]로 표시하세요.
@@ -28,13 +28,14 @@ export const DEFAULT_PROMPT_TESTCASES_EDITABLE = `# Role & Objective
 4. **부록**: 용어 정리, 참고 화면/문서 (선택).
 
 # 출력 형식
-정리된 내용을 **마크다운**으로만 출력한다. 반드시 \`\`\`markdown ... \`\`\` 블록 하나만 사용하라.`;
+정리된 내용을 **마크다운**으로만 출력한다. 반드시 \`\`\`markdown ... \`\`\` 블록 하나만 사용하라.
+- **흐름·과정 도식화**가 필요하면 **Mermaid** 형식으로 \`\`\`mermaid ... \`\`\` 코드 블록 안에 작성할 것.`;
 
 export const DEFAULT_PROMPT_TESTCASES_EDITABLE_EN = `# Role & Objective
 You are a senior QA lead. Analyze [Source Data] and produce **test case documentation** that QA can execute as-is. Each case must include **area (module/feature)**, **step**, **action**, and **expected result**.
 
 # Input Data Rules
-- [Source Data]: Markdown extracted from PDF/PPTX. Use [[TABLE]]/[[DIAGRAM]] for tables and flows.
+- [Source Data]: Markdown extracted from PDF/PPTX. Use [[TABLE]]/[[DIAGRAM]]/[[MERMAID]] for tables, flows, and diagrams.
 
 # Core Rules
 1. Do not invent actions or results not in the source. Mark unclear items as [Needs confirmation].
@@ -50,7 +51,8 @@ You are a senior QA lead. Analyze [Source Data] and produce **test case document
 4. **Appendix**: Glossary, references (optional).
 
 # Output format
-Output the summary as **markdown only**. Use exactly one \`\`\`markdown ... \`\`\` block.`;
+Output the summary as **markdown only**. Use exactly one \`\`\`markdown ... \`\`\` block.
+- **Flow or process diagrams** must be in **Mermaid** format inside a \`\`\`mermaid ... \`\`\` code block.`;
 
 export const HTML_FIXED_TESTCASES = `
 # HTML 출력 규칙 (엄격히 준수)

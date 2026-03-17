@@ -87,22 +87,15 @@ describe('기획 보고서 생성 — 프롬프트·상수 검증', () => {
 });
 
 describe('기획 보고서 생성 — 2단계 파이프라인 조건', () => {
-  it('경영진·실무 + default 템플릿이면 2단계 파이프라인 대상이다', () => {
+  it('경영진·실무 + report 템플릿이면 2단계 파이프라인 대상이다', () => {
     const reportTypes = ['executive', 'team'] as const;
-    const templateIds: HtmlTemplateId[] = ['phase1', 'wiki', 'preformat'];
+    const templateIds: HtmlTemplateId[] = ['phase1', 'presentation2', 'preformat'];
     for (const reportType of reportTypes) {
       for (const templateId of templateIds) {
-        const useTwoPhase = (reportType === 'executive' || reportType === 'team') && templateId !== 'pptx';
+        const useTwoPhase = reportType === 'executive' || reportType === 'team';
         expect(useTwoPhase).toBe(true);
       }
     }
-  });
-
-  it('pptx 템플릿이면 2단계 파이프라인 대상이 아니다', () => {
-    const reportType = 'executive';
-    const templateId = 'pptx';
-    const useTwoPhase = (reportType === 'executive' || reportType === 'team') && templateId !== 'pptx';
-    expect(useTwoPhase).toBe(false);
   });
 });
 

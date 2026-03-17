@@ -23,6 +23,7 @@ export const DEFAULT_PROMPT_EXECUTIVE_EDITABLE = `# Role & Objective
 - 원시 데이터 내 구분자 해석 (필수):
   - [[TABLE]] ... [[/TABLE]] 블록이 있으면, 그 안의 마크다운 표(| ... |)를 HTML <table>로 변환하여 보고서에 반드시 포함하라.
   - [[DIAGRAM]] ... [[/DIAGRAM]] 블록이 있으면, 해당 내용을 차트/다이어그램 설명으로 요약하거나 보고서의 적절한 섹션에 반영하라.
+  - [[MERMAID]] ... [[/MERMAID]] 블록은 Mermaid 문법을 유지·보완하여 정리 md에 그대로 포함하라. 뷰어에서 다이어그램으로 시각화된다.
 
 # Core Rules (엄격히 준수할 것)
 1. 구체성 및 팩트 우선: "사용성이 개선됨", "효율성이 증대됨" 같은 추상적 표현은 배제하고, "처리 시간 30% 단축", "월간 비용 500만 원 절감" 등 구체적 수치·대상·일정으로 작성하십시오.
@@ -33,6 +34,7 @@ export const DEFAULT_PROMPT_EXECUTIVE_EDITABLE = `# Role & Objective
 
 # 필수 출력 항목(섹션 구성)
 **이 단계의 최종 출력은 정리된 마크다운만이다.** 아래 필수 항목을 **마크다운 보고서**에 모두 포함할 것. **각 주요 항목(섹션)은 1~2줄 분량으로 핵심만 정리**할 것. 한 화면에 한 주제만 담아 가독성을 유지하라.
+- **다이어그램·플로우차트·과정 도식화**가 필요하면 **Mermaid** 형식으로 \`\`\`mermaid ... \`\`\` 코드 블록 안에 작성할 것. (flowchart, sequenceDiagram, flowchart LR 등)
 원천 데이터에 없는 내용은 "해당 없음" 또는 요약만 기술하고 창작하지 말 것.
 
 1. **Executive Summary (핵심 요약):** 가독성을 위해 반드시 불릿으로 나누어 작성. 각 불릿은 한 주제만 담고 1~2문장 이내로 짧게. 한 덩어리 문단으로 쓰지 말 것.
@@ -66,6 +68,7 @@ You are a 20-year veteran Chief Strategy Officer (CSO) and executive reporting s
 - Interpret delimiters in the raw data (required):
   - [[TABLE]] ... [[/TABLE]]: Convert the markdown table inside to HTML <table> and include it in the report.
   - [[DIAGRAM]] ... [[/DIAGRAM]]: Summarize as chart/diagram description or reflect in the appropriate section.
+  - [[MERMAID]] ... [[/MERMAID]]: Keep or refine the Mermaid syntax and include in the output; it will be rendered as a diagram in the viewer.
 
 # Core Rules (strict)
 1. Be specific and fact-based: Avoid vague phrases like "improved usability" or "increased efficiency." Use concrete numbers, targets, and timelines (e.g., "30% faster processing", "USD 50K monthly savings").
@@ -76,6 +79,7 @@ You are a 20-year veteran Chief Strategy Officer (CSO) and executive reporting s
 
 # Required Output Sections
 **This step's output is refined markdown only.** Include **all** of the following in the **markdown report**. **Summarize each main section in 1–2 lines; keep content concise.** Keep one topic per screen for readability.
+- **Diagrams, flowcharts, and process visuals** must be written in **Mermaid** format inside a \`\`\`mermaid ... \`\`\` code block (e.g. flowchart, sequenceDiagram).
 Do not invent content missing from the source.
 
 1. **Executive Summary:** Use bullet items. One topic per bullet, 1–2 sentences max. No long paragraphs.
@@ -116,6 +120,7 @@ export const DEFAULT_PROMPT_TEAM_EDITABLE = `# Role & Objective
 - 원시 데이터 내 구분자 해석 (필수):
   - [[TABLE]] ... [[/TABLE]] 블록이 있으면, 그 안의 마크다운 표(| ... |)를 HTML <table>로 변환하여 보고서에 반드시 포함하라.
   - [[DIAGRAM]] ... [[/DIAGRAM]] 블록이 있으면, 해당 내용을 차트/다이어그램 설명으로 요약하거나 보고서의 적절한 섹션에 반영하라.
+  - [[MERMAID]] ... [[/MERMAID]] 블록은 Mermaid 문법을 유지·보완하여 정리 md에 그대로 포함하라. 뷰어에서 다이어그램으로 시각화된다.
 
 # Core Rules (엄격히 준수할 것)
 1. 구체성 원칙: "사용성을 높인다", "안정성을 확보한다" 같은 추상적 표현을 사용하지 말고, 구체적인 로직, 수치, 컴포넌트명, 권한 주체 등을 명시하십시오.
@@ -124,12 +129,14 @@ export const DEFAULT_PROMPT_TEAM_EDITABLE = `# Role & Objective
 4. 리스크·우려가 없으면 창작 금지: 원천 데이터에 우려 사항, Edge Case, 사전 리스크, 통제 방안이 전혀 없으면 해당 섹션을 생략하거나 "해당 없음"으로 처리하고, 없는 리스크·우려·Action Item을 억지로 넣거나 지어내지 말 것.
 
 # 필수 출력 항목(섹션 구성)
-**이 단계의 최종 출력은 정리된 마크다운만이다.** HTML은 별도 단계에서 생성된다. 아래 필수 항목을 **마크다운 보고서**에 모두 포함할 것. **실무용은 각 항목을 상세·풍부하게** 채울 것. 내용이 많으면 섹션을 추가하여 모든 내용을 누락 없이 담을 것. 원천 데이터에 해당 내용이 없으면 "해당 없음" 또는 요약만 기술하고 창작하지 말 것.
+**이 단계의 최종 출력은 정리된 마크다운만이다.** HTML은 별도 단계에서 생성된다. 아래 필수 항목을 **마크다운 보고서**에 모두 포함할 것. **실무용은 각 항목을 상세·풍부하게** 채울 것. 내용이 많으면 섹션을 추가하여 모든 내용을 누락 없이 담을 것.
+- **다이어그램·플로우차트·과정 도식화**가 필요하면 **Mermaid** 형식으로 \`\`\`mermaid ... \`\`\` 코드 블록 안에 작성할 것. (flowchart, sequenceDiagram 등)
+원천 데이터에 해당 내용이 없으면 "해당 없음" 또는 요약만 기술하고 창작하지 말 것.
 
 1. **Executive Summary (핵심 요약):** 2~6개 불릿. 각 항목은 맥락이 드러나도록 2~4문장으로 **구체적**으로 작성. 한 덩어리 문단 금지.
 2. **목적/배경:** why, 무엇을 목표로 하는지 **상세히** 명시. 배경·제약·전제조건 포함.
 3. **핵심 변경사항/정책 요약/핵심 요건:** 변경·정책·요건을 **구체적으로** 나열(표 권장). 필요한 만큼 항목 수 제한 없음.
-4. **전체 프로세스 흐름도:** 단계별 흐름 + 담당 시스템 표기. [[DIAGRAM]] 또는 텍스트/표로 **상세** 표현.
+4. **전체 프로세스 흐름도:** 단계별 흐름 + 담당 시스템 표기. [[MERMAID]] / [[DIAGRAM]] 또는 텍스트/표로 **상세** 표현.
 5. **우선순위 개선 권장사항:** 긴급/중간/낮음 분류, 각 항목에 기대효과·조건 **구체적** 명시.
 6. **리스크·검증포인트:** 운영에 영향을 주는 항목. 원천 데이터에 없으면 "해당 없음". 있으면 **상세** 기술.
 7. **최종 슬라이드:** **상세** 결론·다음 액션·담당·일정.
@@ -159,7 +166,7 @@ You are a senior IT architect and project manager (PM) with 20 years of experien
 
 # Input Data Rules
 - [Source Data]: Markdown extracted from PDF/PPTX by Python. It may include slide/page breaks and table/diagram blocks.
-- Interpret delimiters (required): [[TABLE]]...[[/TABLE]] → include as HTML <table>; [[DIAGRAM]]...[[/DIAGRAM]] → summarize or reflect in the report.
+- Interpret delimiters (required): [[TABLE]]...[[/TABLE]] → include as HTML <table>; [[DIAGRAM]]...[[/DIAGRAM]] → summarize or reflect; [[MERMAID]]...[[/MERMAID]] → keep Mermaid syntax for diagram rendering.
 
 # Core Rules (strict)
 1. Be specific: No vague phrases like "improve usability" or "ensure stability." Use concrete logic, numbers, component names, and owners.
@@ -169,11 +176,12 @@ You are a senior IT architect and project manager (PM) with 20 years of experien
 
 # Required Output Sections
 **This step's output is refined markdown only.** HTML is generated in a separate step. The markdown report must include **all** required sections; **for team reports each section must be detailed and rich.** If content is long, add more sections so nothing is cut. Use "N/A" or a short summary only when the source lacks the content. **Limit self-review iteration to 2 at most.**
+- **Diagrams, flowcharts, and process visuals** must be in **Mermaid** format inside a \`\`\`mermaid ... \`\`\` code block.
 
 1. **Executive Summary:** 2–6 bullet items, 2–4 **concrete** sentences each. No long paragraphs.
 2. **Purpose / Background:** State clearly why and what the objective is; include **full context**, constraints, and assumptions.
 3. **Key changes / policy summary / key requirements:** List **concretely** (table preferred). No arbitrary limit on number of items.
-4. **End-to-end process flow:** Steps and owning systems **in detail**. Use [[DIAGRAM]] or text/table.
+4. **End-to-end process flow:** Steps and owning systems **in detail**. Use [[MERMAID]] / [[DIAGRAM]] or text/table.
 5. **Prioritized recommendations:** Urgent / medium / low with **concrete** expected impact and conditions per item.
 6. **Risks & verification points:** **Detailed** where present in source. "N/A" if none.
 7. **Final slide:** **Detailed** conclusion, next actions, owners, and timelines.
@@ -361,6 +369,7 @@ export const QUALITY_RUBRIC_AND_NO_LOSS = `
 - □ **콘텐츠가 풍부한가?** 각 섹션이 한두 줄 요약이 아니라, 맥락·구체적 내용·필요 시 예시·조건이 담겨 실무자가 실행 가능한 수준인가?
 
 # 절대 준수 사항
+- **다이어그램·플로우차트·과정 도식화**는 반드시 **Mermaid** 형식으로 \`\`\`mermaid ... \`\`\` 코드 블록에 작성할 것. (flowchart, sequenceDiagram 등)
 - **중요 포인트와 핵심이 사라지거나, 과도하게 축약되어 전달이 누락되면 안 된다.** 회차를 반복할 때(**최대 2회**)에도 원천 데이터의 핵심 메시지·수치·결정 포인트는 반드시 유지·반영하라. 요약은 하되 "삭제"하지 말 것.
 - **정리 내용 md는 알맹이 있는 문서여야 한다.** 제목·불릿 한 줄만 나열하지 말고, 각 항목에 구체적 설명·배경·수치·조건을 넣어 읽는 이가 맥락을 이해하고 행동할 수 있도록 작성하라.
 - **원천 데이터가 길면(수백~수천 줄·많은 슬라이드) 반드시 전체를 분석**하여, 정리 md에 주요 섹션·슬라이드·표·핵심 수치를 **빠짐없이** 반영할 것. 정리 md 분량은 원천 분량에 비례하여 충분히 길어야 하며, 몇 줄 요약으로 끝내지 말 것.
@@ -653,7 +662,7 @@ export const PREFORMAT_INSTRUCTION = `[Preformat — 템플릿 자동 설계 모
 - 완성물은 반드시 **완전한 단일 HTML 문서**(\`<!DOCTYPE html>\` ~ \`</html>\`)여야 한다.
 - \`<head>\`에 \`<meta charset="UTF-8">\`, \`<meta name="viewport">\`, \`<title>\`, 스타일(\`<style>\` 또는 Tailwind CDN 등)을 포함한다.
 - 본문은 시맨틱하게 \`<h1>\`, \`<h2>\`, \`<section>\`, \`<table>\`, \`<ul>\` 등을 사용하고, 필요 시 카드·그리드 레이아웃을 적용한다.
-- [[TABLE]] / [[DIAGRAM]] 블록이 원시 데이터에 있으면, 표·설명으로 보고서에 반영한다.
+- [[TABLE]] / [[DIAGRAM]] / [[MERMAID]] 블록이 원시 데이터에 있으면, 표·설명·Mermaid 다이어그램으로 보고서에 반영한다.
 
 # 3. 출력 형식 (엄격히 준수)
 다음 순서로만 출력하라. Step·분석 문단은 포함하지 말 것.
@@ -727,7 +736,8 @@ export const HTML_FROM_MD_FULL_COVERAGE = `
 export const DATA_BLOCK_INSTRUCTION = `
 # 원시 데이터 블록 해석 (필수)
 - 원시 데이터에 \`[[TABLE]]\` ... \`[[/TABLE]]\` 블록이 있으면, 그 안의 마크다운 표(| ... |)를 HTML <table>로 변환하여 보고서에 반드시 포함하라.
-- \`[[DIAGRAM]]\` ... \`[[/DIAGRAM]]\` 블록이 있으면, 해당 내용을 차트/다이어그램 설명으로 요약하거나 보고서의 적절한 섹션에 반영하라.`;
+- \`[[DIAGRAM]]\` ... \`[[/DIAGRAM]]\` 블록이 있으면, 해당 내용을 차트/다이어그램 설명으로 요약하거나 보고서의 적절한 섹션에 반영하라.
+- \`[[MERMAID]]\` ... \`[[/MERMAID]]\` 블록은 Mermaid 문법을 유지·보완하여 정리 md에 포함하라. 뷰어에서 다이어그램으로 렌더된다.`;
 
 /** 기본 포맷 변수 채우기 지시 */
 export const DEFAULT_FORMAT_VARIABLE_REMINDER = `
@@ -802,6 +812,7 @@ export const REFINED_MD_WITH_CHOICES_SYSTEM_KO = `당신은 [원천 데이터]�
 - 선택된 "강조" 항목에 해당하는 섹션은 분량을 넉넉히 하고 핵심 문장을 두드러지게.
 - 선택된 "관점"에 맞게 서술 순서·강조점을 맞추세요.
 - 원천 데이터의 핵심을 빠짐없이 담되, 선택 반영에 맞게 구성하세요.
+- **다이어그램·플로우차트·과정 도식화**가 필요하면 **Mermaid** 형식으로 \`\`\`mermaid ... \`\`\` 코드 블록 안에 작성할 것.
 **출력:** 정리된 마크다운 전체만 출력하세요. 설명·접두사 없이 마크다운만 출력합니다.`;
 
 export const REFINED_MD_WITH_CHOICES_SYSTEM_EN = `You are a writer turning [Source data] into an executive/team report.
@@ -809,6 +820,7 @@ Below [User choices] are the user's preferences for what to emphasize. Write the
 - Expand and highlight sections that match selected "emphasize" items.
 - Align order and emphasis with the selected "perspective".
 - Cover the source content fully while reflecting the choices.
+- **Diagrams, flowcharts, and process visuals** must be in **Mermaid** format inside a \`\`\`mermaid ... \`\`\` code block.
 **Output:** Output only the full refined markdown. No explanation or prefix.`;
 
 export const REFINE_WITH_ANSWERS_SYSTEM_EN = `You are an editor revising a report draft.

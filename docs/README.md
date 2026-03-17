@@ -17,8 +17,8 @@
 | **09-faq-reasoning-html-slides-ko.md** | FAQ: reasoning, HTML, 슬라이드 |
 | **10-report-generation-latency-ko.md** | 보고서 생성 지연 원인·개선 방안 |
 | **11-refined-md-vs-html-variables-ko.md** | 정리 md vs HTML 변수 |
-| **12-recent-updates-ko.md** | 최근 변경 사항(질문 플로우, 기본 템플릿, 다운로드 파일명 등) |
-| **user-manual.html** | 사용자 메뉴얼 (HTML, 기획자·사용자 대상) |
+| **12-recent-updates-ko.md** | 최근 변경 사항: 질문 플로우, HTML 형식 3종만 유지·PPT 제거, 정리 md 재사용, Mermaid 추출·뷰어, 정리 md 뷰어(표·블릿)·거절 감지 등 |
+| **user-manual.html** | 사용자 메뉴얼 (HTML, 기획자·사용자 대상) — Step 2 HTML 형식 3종, 정리 md 재사용·Mermaid·뷰어 안내 반영 |
 | **GITHUB_SETUP.md** | GitHub 설정 |
 
-앱 내 **도움말 → 온보딩 메뉴얼**과 **user-manual.html**은 동일한 이용 방법·정리 md 재활용·HTML 실패 시 정리 md 다운로드 안내를 반영합니다.
+앱 내 **도움말 → 온보딩 메뉴얼**과 **user-manual.html**은 동일한 이용 방법·HTML 형식 3종(기획/제안서 스타일, 프레젠테이션 스타일, 프리포맷)·정리 md 재사용·Mermaid·정리 md 뷰어(표·블릿)·HTML 실패·거절 시 안내를 반영합니다.

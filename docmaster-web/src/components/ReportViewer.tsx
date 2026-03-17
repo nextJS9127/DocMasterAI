@@ -9,6 +9,41 @@ function stripDuplicateCheckmarks(html: string): string {
   return html.replace(/<li>\s*(?:✓\s*)+/gi, '<li>');
 }
 
+const MERMAID_CDN = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
+const MERMAID_INIT_SCRIPT = `
+(function(){
+  if (typeof mermaid === 'undefined') return;
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'neutral' });
+  var nodes = document.querySelectorAll('.mermaid');
+  if (nodes.length) mermaid.run({ nodes: nodes });
+})();
+`;
+
+/**
+ * HTML 내 <pre><code class="language-mermaid">...</code></pre> 를 <div class="mermaid">...</div> 로 바꾸고,
+ * Mermaid가 있으면 스크립트를 주입해 iframe에서 다이어그램으로 렌더되게 함.
+ */
+function injectMermaidRendering(html: string): string {
+  const mermaidBlockRegex = /<pre[^>]*>\s*<code[^>]*class="[^"]*language-mermaid[^"]*"[^>]*>([\s\S]*?)<\/code>\s*<\/pre>|<pre[^>]*class="[^"]*language-mermaid[^"]*"[^>]*>\s*<code[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi;
+  let hasMermaid = false;
+  const withDivs = html.replace(mermaidBlockRegex, (_, code1, code2) => {
+    const code = code1 ?? code2 ?? '';
+    hasMermaid = true;
+    const raw = (code || '')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"');
+    return '<div class="mermaid">\n' + raw.trim() + '\n</div>';
+  });
+  if (!hasMermaid && !/class="mermaid"/i.test(withDivs)) return withDivs;
+  const scriptTag = `<script src="${MERMAID_CDN}"><\\/script><script>${MERMAID_INIT_SCRIPT}<\\/script>`;
+  if (/<\/body\s*>/i.test(withDivs)) {
+    return withDivs.replace(/<\/body\s*>/i, scriptTag + '\n</body>');
+  }
+  return withDivs + scriptTag;
+}
+
 /** 보고서 유형별 HTML 다운로드 파일명 접미사 (첨부 파일명_접미사.html) */
 function getReportDownloadSuffix(reportType: ReportType | null): string {
   if (reportType === 'features') return '_개발Features';
@@ -30,7 +65,10 @@ interface ReportViewerProps {
 
 export function ReportViewer({ htmlContent, onClose, lang, variant = 'fullscreen', fileName, reportType }: ReportViewerProps) {
   const t = translations[lang].viewer;
-  const processedHtml = useMemo(() => stripDuplicateCheckmarks(htmlContent), [htmlContent]);
+  const processedHtml = useMemo(
+    () => injectMermaidRendering(stripDuplicateCheckmarks(htmlContent)),
+    [htmlContent]
+  );
 
   const downloadFileName = useMemo(() => {
     const base = (fileName || 'report').replace(/\.[^.]+$/i, '').trim() || 'report';

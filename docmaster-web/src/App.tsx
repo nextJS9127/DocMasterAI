@@ -8,12 +8,12 @@ import { UploadZone } from './components/UploadZone';
 import { ReportViewer } from './components/ReportViewer';
 import { ParsedResultPanel } from './components/ParsedResultPanel';
 import { LoadingPopup } from './components/LoadingPopup';
-import { generateReportClient, generateRefinedMarkdownClient, generateHtmlFromMarkdownClient, generateCustomizationQuestionsFromRawClient, generateRefinedMarkdownWithChoicesClient, getReportLoadingMessagesFromRawMd, type ReportUsage, type HtmlTemplateId, type ReportType, type CustomizationQuestion } from './lib/llmClient';
-import { buildAndDownloadPptx } from './lib/pptxExport';
+import { generateReportClient, generateRefinedMarkdownClient, generateHtmlFromMarkdownClient, generateCustomizationQuestionsFromRawClient, generateRefinedMarkdownWithChoicesClient, getReportLoadingMessagesFromRawMd, isLlmRefusalContent, type ReportUsage, type HtmlTemplateId, type ReportType, type CustomizationQuestion } from './lib/llmClient';
 import { translations } from './lib/translations';
 import type { Language } from './lib/translations';
 import { BestPracticeCards, type BestPracticeId } from './components/BestPracticeCards';
 import { CustomizationQuestionModal } from './components/CustomizationQuestionModal';
+import { MarkdownArtifactViewer } from './components/MarkdownArtifactViewer';
 
 /** 파싱 백엔드 URL. 빌드 시 VITE_API_BASE_URL 있으면 사용, 없으면 Vercel/배포 환경에서는 배포 백엔드 사용 */
 const API_BASE_URL = (() => {
@@ -23,10 +23,10 @@ const API_BASE_URL = (() => {
   }
   if (typeof window !== 'undefined') {
     const host = window.location?.hostname || '';
-    if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8001';
+    if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8000';
     return 'https://doc-master-ai-wsjo.vercel.app';
   }
-  return 'http://localhost:8001';
+  return 'http://localhost:8000';
 })();
 
 // [UPDATED] 2단계 파이프라인 상태 타입
@@ -51,6 +51,7 @@ function App() {
   const [reportTypeForMarkdown, setReportTypeForMarkdown] = useState<ReportType | null>(null);
   const [reportUsage, setReportUsage] = useState<ReportUsage | null>(null);
   const [showReportPopup, setShowReportPopup] = useState(false);
+  const [showMarkdownArtifactViewer, setShowMarkdownArtifactViewer] = useState(false);
   const [showKeyRequiredToast, setShowKeyRequiredToast] = useState(false);
   /** 로딩 팝업: parsing | generating 시 표시. generating 시 subPhase·liveMessages로 "살아있는" 메시지 지원(실험) */
   const [loadingContext, setLoadingContext] = useState<{
@@ -165,8 +166,10 @@ function App() {
     }
 
     setAppStep('generating');
-    const useTwoPhase = (reportType === 'executive' || reportType === 'team' || reportType === 'testcases' || reportType === 'features') && templateId !== 'pptx';
-    const reuseRefinedMd = useTwoPhase && reportMarkdown != null && reportTypeForMarkdown === reportType;
+    const useTwoPhase = reportType === 'executive' || reportType === 'team' || reportType === 'testcases' || reportType === 'features';
+    // 같은 보고서 계열(기획서/개발피처/테스트케이스) + 이미 정리 md 있음 → 정리 md 재생성 없이 선택한 HTML 형식(templateId)으로만 HTML 생성
+    const hasValidRefinedMd = reportMarkdown != null && reportMarkdown.trim().length > 0;
+    const reuseRefinedMd = useTwoPhase && hasValidRefinedMd && reportTypeForMarkdown === reportType;
 
     if (useTwoPhase && reuseRefinedMd) {
       setLoadingContext({ phase: 'generating', fileName: parsedFileName || '', subPhase: 'writing', liveMessages: t.loadingPopup.writingPhaseMessages });
@@ -186,7 +189,7 @@ function App() {
       setLoadingContext({ phase: 'generating', fileName: parsedFileName || '' });
     }
 
-    console.log('[DocMaster] 보고서 생성 시작', { reportType, templateId, highQuality, useTwoPhase });
+    console.log('[DocMaster] 보고서 생성 시작', { reportType, templateId, highQuality, useTwoPhase, reuseRefinedMd, hasValidRefinedMd: !!hasValidRefinedMd, reportTypeForMarkdown });
     try {
       // 기획서 기반 보고서(경영진/실무) + pptx 아님 → 2단계 파이프라인 (정리 md → HTML)
       if (useTwoPhase) {
@@ -195,8 +198,10 @@ function App() {
         let usage1: ReportUsage | undefined;
 
         if (reuseRefinedMd) {
-          console.log('[DocMaster] 2단계: 기존 정리 md 사용, HTML만 재생성', { templateId });
-          refinedMd = reportMarkdown!;
+          const htmlOnlyTemplateId: HtmlTemplateId =
+            reportType === 'testcases' ? 'testcases' : reportType === 'features' ? 'features' : templateId;
+          console.log('[DocMaster] 2단계: 기존 정리 md 사용, HTML만 재생성', { templateId, htmlOnlyTemplateId });
+          refinedMd = reportMarkdown!.trim();
         } else {
           const isExecutiveOrTeam = reportType === 'executive' || reportType === 'team';
           // 경영진/실무: 원문으로 맞춤 질문만 먼저 생성(빠른 모델). 질문이 있으면 팝업만 띄우고 정리 md는 나중에(제출/건너뛰기 시) 1회만 생성
@@ -246,6 +251,9 @@ function App() {
             });
             throw new Error(t.errors.refinedContentFailed);
           }
+          if (isLlmRefusalContent(result.markdown)) {
+            throw new Error(t.errors.modelRefusedRequest);
+          }
           refinedMd = result.markdown;
           usage1 = result.usage;
           setReportMarkdown(refinedMd);
@@ -274,6 +282,9 @@ function App() {
           );
           if (!html?.trim()) {
             throw new Error('HTML 생성 결과가 비어 있습니다.');
+          }
+          if (isLlmRefusalContent(html)) {
+            throw new Error(t.errors.modelRefusedRequest);
           }
           setReportHtml(html);
           // 정리 md(usage1) + HTML(usage2) 모두 합산하여 총 토큰·비용 표시 (모델별 단가로 각각 계산 후 합산)
@@ -310,14 +321,15 @@ function App() {
           setReportUsage(usage1 ?? null);
           setAppStep('parsed');
           setLoadingContext(null);
-          alert(t.parsedPanel.htmlFailedRefinedMdAvailable);
+          const isRefusal = htmlError instanceof Error && htmlError.message === t.errors.modelRefusedRequest;
+          alert(isRefusal ? `${t.errors.modelRefusedRequest}\n\n${t.parsedPanel.htmlFailedRefinedMdAvailable}` : t.parsedPanel.htmlFailedRefinedMdAvailable);
           return;
         }
       }
 
       console.log('[DocMaster] 1단계(통합) 리포트 생성 중...', { reportType, templateId });
       console.log('[DocMaster] generateReportClient 호출 직전', { parsedMarkdownLength: parsedMarkdown?.length ?? 0 });
-      const { html, markdown, usage, slides } = await generateReportClient(
+      const { html, markdown, usage } = await generateReportClient(
         parsedMarkdown,
         llmProvider,
         llmKey,
@@ -329,23 +341,15 @@ function App() {
         reportType,
         htmlLength: html?.length ?? 0,
         markdownLength: markdown?.length ?? 0,
-        hasSlides: !!slides?.length,
       });
-      if (slides?.length) {
-        const baseName = parsedFileName.replace(/\.[^.]+$/i, '') || 'report';
-        buildAndDownloadPptx(slides, baseName);
-        setReportHtml(null);
-        setReportMarkdown(null);
-        setReportUsage(usage ?? null);
-        setAppStep('parsed');
-        setLoadingContext(null);
-        alert(t.parsedPanel.reportPptxDownloaded);
-        return;
-      }
       const isTcOrFeatures = reportType === 'testcases' || reportType === 'features';
-      const htmlToSet = isTcOrFeatures && (!html || html.length === 0)
+      const isRefusal = isLlmRefusalContent(html ?? '');
+      const htmlToSet = isRefusal || (isTcOrFeatures && (!html || html.length === 0))
         ? t.parsedPanel.emptyReportHtml
         : html;
+      if (isRefusal) {
+        alert(t.errors.modelRefusedRequest);
+      }
       const mdToSet = (markdown != null && markdown.length > 0)
         ? markdown
         : isTcOrFeatures
@@ -443,6 +447,9 @@ function App() {
         if (!refinedMd?.trim()) {
           throw new Error(t.errors.refinedContentFailed);
         }
+        if (isLlmRefusalContent(refinedMd)) {
+          throw new Error(t.errors.modelRefusedRequest);
+        }
         setReportMarkdown(refinedMd);
         setReportTypeForMarkdown(d.reportType);
         const { html, usage: usage2 } = await generateHtmlFromMarkdownClient(
@@ -454,6 +461,9 @@ function App() {
           d.apiBaseUrl,
           d.highQuality
         );
+        if (isLlmRefusalContent(html ?? '')) {
+          throw new Error(t.errors.modelRefusedRequest);
+        }
         setReportHtml(html);
         setReportUsage(
           usage1 && usage2
@@ -497,6 +507,9 @@ function App() {
         if (!mdToUse) {
           throw new Error(t.errors.refinedContentFailed);
         }
+        if (isLlmRefusalContent(mdToUse)) {
+          throw new Error(t.errors.modelRefusedRequest);
+        }
         setReportMarkdown(mdToUse);
         setReportTypeForMarkdown(d.reportType);
         const usage1 = uRefine ?? d.usage1;
@@ -509,6 +522,9 @@ function App() {
           d.apiBaseUrl,
           d.highQuality
         );
+        if (isLlmRefusalContent(html ?? '')) {
+          throw new Error(t.errors.modelRefusedRequest);
+        }
         setReportHtml(html);
         setReportUsage(
           usage1 && usage2
@@ -827,6 +843,7 @@ function App() {
                     if (reportHtml) setShowReportPopup(true);
                     else if (reportMarkdown) alert(t.parsedPanel.htmlFailedRefinedMdAvailable);
                   }}
+                  onViewReportMd={() => setShowMarkdownArtifactViewer(true)}
                 />
                 {/* 1단계 추출 결과를 기준으로 생성할 문서 타입 선택 — Step2 영역 아래 */}
                 <div className="mt-10">
@@ -943,6 +960,35 @@ function App() {
               >
                 {t.upload.showHelp}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 정리 md 아티팩트 뷰어 (팝업: 마크다운 + Mermaid 시각화) */}
+      {showMarkdownArtifactViewer && reportMarkdown && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowMarkdownArtifactViewer(false)}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-5xl w-[95vw] max-h-[88vh] bg-slate-100 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+            <header className="shrink-0 flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
+              <h2 className="text-lg font-bold text-slate-800">{t.parsedPanel.viewReportMd}</h2>
+              <button
+                type="button"
+                onClick={() => setShowMarkdownArtifactViewer(false)}
+                className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                aria-label={t.viewer.close}
+              >
+                <X size={24} />
+              </button>
+            </header>
+            <div className="flex-1 overflow-auto p-6 min-h-0">
+              <div className="bg-white rounded-xl shadow border border-slate-200 p-6">
+                <MarkdownArtifactViewer markdown={reportMarkdown} />
+              </div>
             </div>
           </div>
         </div>

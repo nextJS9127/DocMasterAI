@@ -17,7 +17,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi import APIRouter
 
 from app.pdf_utils import pdf_to_markdown
@@ -54,6 +54,13 @@ app.add_middleware(
 
 SUPPORTED_EXTENSIONS = {".pdf", ".pptx"}
 
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """브라우저가 자동 요청하는 favicon — 404 방지."""
+    return Response(status_code=204)
+
+
 # Vercel 배포 시 공식 예제처럼 /api prefix 사용 (로컬도 동일하게 /api/parse, /api/health)
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -78,7 +85,7 @@ TEMPLATES_DIR = Path(__file__).parent / "data" / "templates"
 TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 
 # 허용된 템플릿 ID (path traversal 방지). pptx는 API에서 제외(별도 처리). testcases/features는 어드민에서 편집 가능.
-ALLOWED_TEMPLATE_IDS = {"phase1", "presentation2", "wiki", "preformat", "testcases", "features"}
+ALLOWED_TEMPLATE_IDS = {"phase1", "presentation2", "preformat", "testcases", "features"}
 # 추가 템플릿 ID: 영문·숫자·하이픈·언더스코어만 허용 (최대 64자)
 SAFE_TEMPLATE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 

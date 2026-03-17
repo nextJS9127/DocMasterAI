@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Download, FileText, RefreshCw, ChevronRight, Loader2, FileOutput, FileDown } from 'lucide-react';
+import { Download, FileText, RefreshCw, ChevronRight, Loader2, FileOutput, FileDown, FileCode } from 'lucide-react';
 import { translations } from '../lib/translations';
 import type { Language } from '../lib/translations';
 import type { HtmlTemplateId, ReportUsage, ReportType } from '../lib/llmClient';
@@ -37,6 +37,8 @@ interface ParsedResultPanelProps {
     reportMarkdown?: string | null;
     reportUsage?: ReportUsage | null;
     onViewReport?: () => void;
+    /** 정리 md 아티팩트 뷰(시각화) 열기 */
+    onViewReportMd?: () => void;
 }
 
 export function ParsedResultPanel({
@@ -54,6 +56,7 @@ export function ParsedResultPanel({
     reportMarkdown = null,
     reportUsage = null,
     onViewReport,
+    onViewReportMd,
 }: ParsedResultPanelProps) {
     const [reportType, setReportType] = useState<'executive' | 'team'>('executive');
     const [htmlTemplateId, setHtmlTemplateId] = useState<HtmlTemplateId>('phase1');
@@ -90,7 +93,7 @@ export function ParsedResultPanel({
         const customTitle = typeof localStorage !== 'undefined' ? localStorage.getItem(TEMPLATE_TITLE_STORAGE_KEY + id)?.trim() : null;
         if (customTitle) return customTitle;
         if (category === 'report') {
-            const labels: Record<string, string> = { phase1: tp.htmlFormatPhase1, presentation2: tp.htmlFormatPresentation, wiki: tp.htmlFormatWiki, preformat: tp.htmlFormatPreformat, pptx: tp.htmlFormatPptx };
+            const labels: Record<string, string> = { phase1: tp.htmlFormatPhase1, presentation2: tp.htmlFormatPresentation, preformat: tp.htmlFormatPreformat };
             return labels[id] ?? id;
         }
         if (id === 'features') return ta.templateLabelFeatures as string;
@@ -218,14 +221,24 @@ export function ParsedResultPanel({
                     </div>
                     <div className="flex flex-wrap items-center justify-center gap-2">
                         {reportMarkdown && (
-                            <button
-                                type="button"
-                                onClick={handleDownloadReportMd}
-                                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-sm transition-colors"
-                            >
-                                <FileDown size={18} />
-                                {tp.downloadReportMd}
-                            </button>
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={onViewReportMd}
+                                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-xl shadow-sm transition-colors"
+                                >
+                                    <FileCode size={18} />
+                                    {tp.viewReportMd}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadReportMd}
+                                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-sm transition-colors"
+                                >
+                                    <FileDown size={18} />
+                                    {tp.downloadReportMd}
+                                </button>
+                            </>
                         )}
                         <button
                             type="button"

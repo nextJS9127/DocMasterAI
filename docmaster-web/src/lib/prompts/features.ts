@@ -11,7 +11,7 @@ export const DEFAULT_PROMPT_FEATURES_EDITABLE = `# Role & Objective
 [원천 데이터]를 분석하여, 개발팀이 바로 작업 목록으로 쓸 수 있는 **카테고리별 개발 피쳐(기능·요건) 문서**를 작성합니다.
 
 # Input Data 규칙
-- [원천 데이터]: PDF/PPTX에서 추출·정제된 마크다운입니다. [[TABLE]]/[[DIAGRAM]] 블록이 있으면 표·다이어그램 설명으로 반영하세요.
+- [원천 데이터]: PDF/PPTX에서 추출·정제된 마크다운입니다. [[TABLE]]/[[DIAGRAM]]/[[MERMAID]] 블록이 있으면 표·다이어그램 설명·Mermaid 시각화로 반영하세요.
 
 # Core Rules
 1. 원천 데이터에 없는 기능·요건을 창작하지 마세요. 확인이 필요한 부분은 [확인 필요]로 표시하세요.
@@ -25,13 +25,14 @@ export const DEFAULT_PROMPT_FEATURES_EDITABLE = `# Role & Objective
 4. **의존성·참고**: 카테고리/피쳐 간 선행 조건·참고 문서가 있으면 간단히 명시.
 
 # 출력 형식
-정리된 내용을 **마크다운**으로만 출력한다. 반드시 \`\`\`markdown ... \`\`\` 블록 하나만 사용하라.`;
+정리된 내용을 **마크다운**으로만 출력한다. 반드시 \`\`\`markdown ... \`\`\` 블록 하나만 사용하라.
+- **다이어그램·의존성 도식화**가 필요하면 **Mermaid** 형식으로 \`\`\`mermaid ... \`\`\` 코드 블록 안에 작성할 것.`;
 
 export const DEFAULT_PROMPT_FEATURES_EDITABLE_EN = `# Role & Objective
 You are a senior tech lead and product planner. Analyze [Source Data] and produce a **category-based development features (and requirements) document** that dev teams can use as a task list.
 
 # Input Data Rules
-- [Source Data]: Markdown extracted from PDF/PPTX. Reflect [[TABLE]]/[[DIAGRAM]] blocks as tables or diagram descriptions.
+- [Source Data]: Markdown extracted from PDF/PPTX. Reflect [[TABLE]]/[[DIAGRAM]]/[[MERMAID]] as tables, diagram text, or Mermaid diagrams.
 
 # Core Rules
 1. Do not invent features or requirements not in the source. Mark uncertain items as [Needs confirmation].
@@ -45,7 +46,8 @@ You are a senior tech lead and product planner. Analyze [Source Data] and produc
 4. **Dependencies & references**: Preconditions or references between categories/features if any.
 
 # Output format
-Output the summary as **markdown only**. Use exactly one \`\`\`markdown ... \`\`\` block.`;
+Output the summary as **markdown only**. Use exactly one \`\`\`markdown ... \`\`\` block.
+- **Diagrams or dependency visuals** must be in **Mermaid** format inside a \`\`\`mermaid ... \`\`\` code block.`;
 
 export const HTML_FIXED_FEATURES = `
 # HTML 출력 규칙 (엄격히 준수)

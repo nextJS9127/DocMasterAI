@@ -12,7 +12,13 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.shapes.group import GroupShape
 
-from app.extract_constants import wrap_table, wrap_diagram
+from app.extract_constants import (
+    wrap_table,
+    wrap_diagram,
+    wrap_mermaid,
+    table_md_to_mermaid_flowchart,
+    caption_to_mermaid_node,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -118,19 +124,23 @@ def _collect_from_shapes(shapes, title_holder: list[str]) -> list[str]:
                 table_md = _shape_to_table_md(shape)
                 if table_md:
                     body_parts.append(wrap_table(table_md))
+                    mermaid_flow = table_md_to_mermaid_flowchart(table_md)
+                    body_parts.append(wrap_mermaid(mermaid_flow))
             except Exception as e:
                 logger.warning("표 추출 실패(shape 건너뜀): %s", e)
             continue
 
-        # 차트
+        # 차트: [[DIAGRAM]](호환) + [[MERMAID]] 시각화
         if getattr(shape, "has_chart", False) and shape.has_chart:
             caption = _shape_to_diagram_caption(shape)
             body_parts.append(wrap_diagram(caption))
+            body_parts.append(wrap_mermaid(caption_to_mermaid_node(caption)))
             continue
 
-        # SmartArt 등 (GraphicFrame이지만 표/차트 아님)
+        # SmartArt 등: [[DIAGRAM]](호환) + [[MERMAID]]
         if _is_graphic_frame_diagram(shape):
             body_parts.append(wrap_diagram("SmartArt/다이어그램"))
+            body_parts.append(wrap_mermaid(caption_to_mermaid_node("SmartArt/다이어그램")))
             continue
 
         # 텍스트

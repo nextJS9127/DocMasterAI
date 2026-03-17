@@ -14,7 +14,7 @@ from typing import Any
 import pymupdf4llm
 import pdfplumber
 
-from app.extract_constants import wrap_table
+from app.extract_constants import wrap_table, wrap_mermaid, table_md_to_mermaid_flowchart
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +124,9 @@ def pdf_to_markdown(pdf_path: str, out_meta: dict[str, Any] | None = None) -> st
             result_parts.append("\n\n### 📊 Tables\n")
             for table_md in tables_by_page[page_num]:
                 result_parts.append(wrap_table(table_md))
+                result_parts.append("\n")
+                mermaid_flow = table_md_to_mermaid_flowchart(table_md)
+                result_parts.append(wrap_mermaid(mermaid_flow))
                 result_parts.append("\n")
 
         result_parts.append("\n\n---\n\n")

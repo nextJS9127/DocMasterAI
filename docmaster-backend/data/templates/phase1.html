@@ -1,0 +1,27 @@
+[기획/제안서 HTML 형식 — 스타일 가이드]
+
+■ 문서 구조
+- <!DOCTYPE html>, <html lang="ko">, <head>(meta charset, viewport, title, <style>...</style>), <body>
+- body 직계: <div class="container"> (padding 40px 20px)
+  - 첫 자식: <div class="header"> (중앙 정렬, 흰색 글자, 반투명 배경, border-radius 20px, padding 60px 20px)
+    - <h1> (큰 제목), <p class="subtitle"> (부제), <div class="meta-info"> (작은 메타 정보)
+  - 이어서: 여러 <div class="section"> (흰 배경, border-radius 20px, padding 50px, margin-bottom 40px, box-shadow)
+    - 각 section 내: <h2 class="section-title"> (왼쪽 border-left 6px solid #2d3748, padding-left 20px) + 본문
+
+■ 스타일 요약 (반드시 <style>에 반영)
+- body: font-family Pretendard/system-ui/Roboto; background linear-gradient(135deg, #667eea 0%, #764ba2 100%); color #2d3748; line-height 1.6
+- .header: color white; background rgba(255,255,255,0.1); backdrop-filter blur(10px); border-radius 20px; box-shadow
+- .header h1: font-size 3.2em; font-weight 800; text-shadow
+- .section: background white; border-radius 20px; padding 50px; margin-bottom 40px; box-shadow 0 10px 40px rgba(0,0,0,0.1)
+- .section-title: font-size 2.1em; font-weight 700; color #2d3748; border-left 6px solid #2d3748; padding-left 20px
+- 리스트: <ul class="check-list">, <li> (list-style none, padding-left 25px), li::before { content "✓"; color #667eea }
+- 카드 그리드: <div class="problem-solution-grid"> (display grid; grid-template-columns repeat(auto-fit, minmax(280px, 1fr)); gap 25px)
+  - 자식: <div class="problem-solution-card"> (흰 배경, border 1px solid #e2e8f0, border-radius 15px, padding 30px)
+  - 카드 내: <div class="card-header"> (font-size 1.3em, border-bottom 2px solid #edf2f7, padding-bottom 10px) + <ul class="check-list">
+- 프로세스: <div class="process-flow"> > 반복 <div class="process-step"> (배경 #f8fafc, border-left 5px solid #667eea)
+  - step 내: <div class="step-number"> (원형 배지, 배경 #667eea, color white, 30x30) + <div class="step-content"><h3> + <ul class="check-list">
+- 표: <table> (width 100%, border-collapse collapse), th/td (border 1px solid #e2e8f0, padding 10px 12px), th { background #f8fafc; font-weight 600 }
+- 강조 박스: <div class="highlight-box"> (배경 linear-gradient 135deg #ffeaa7~#fdcb6e, border-left 5px solid #f39c12, padding 25px, border-radius 10px), 내부 <strong> (color #d35400)
+
+■ 출력 요구
+- 위 구조·클래스명·색상·레이아웃을 정확히 따르고, [원시 데이터] 분석 결과로 제목·섹션 제목·리스트·표·카드 내용만 채워 완성된 HTML 전체를 출력하라.
