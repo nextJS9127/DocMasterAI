@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Brain, Settings, CheckCircle2, ChevronRight, Lock, Upload, User, Mail, BookOpen, HelpCircle, KeyRound, X, FileCode } from 'lucide-react';
+import { Brain, Settings, CheckCircle2, ChevronRight, Lock, Upload, User, Mail, BookOpen, HelpCircle, KeyRound, X, FileCode, Github } from 'lucide-react';
 import { SettingsModal } from './components/SettingsModal';
 import { TemplateAdminModal } from './components/TemplateAdminModal';
 import { PromptSetModal } from './components/PromptSetModal';
@@ -652,6 +652,24 @@ function App() {
             <span className="text-xs font-medium uppercase tracking-wider">{t.sidebar.security}</span>
           </div>
           <p className="text-xs text-slate-500 leading-relaxed">{t.sidebar.securityDesc}</p>
+        </div>
+
+        <div className="p-8 border-t border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-3 text-slate-500 mb-4">
+            <Github size={16} className="text-slate-400" />
+            <span className="text-xs font-medium uppercase tracking-wider">{t.sidebar.sourceSectionTitle}</span>
+          </div>
+          <p className="text-sm font-medium text-slate-700 mb-2">
+            <a
+              href="https://github.com/nextJS9127/DocMasterAI"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 hover:text-indigo-800 hover:underline"
+            >
+              {t.sidebar.sourceDownloadLink}
+            </a>
+          </p>
+          <p className="text-xs text-slate-500 leading-relaxed">{t.sidebar.sourceDownloadDesc}</p>
         </div>
 
         <div className="p-6 border-t border-slate-100 bg-white">
