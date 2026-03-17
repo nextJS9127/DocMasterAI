@@ -29,9 +29,9 @@ DocMaster는 다음 **세 가지**를 지키려고 설계되었습니다.
 
 | Upload & Extract | Report (Executive / Team) |
 |------------------|---------------------------|
-| [![업로드·설정 화면](https://doc-master-ai.vercel.app/user-manual/images/img1.png)](https://doc-master-ai.vercel.app/user-manual/user-manual.html) | [![보고서 뷰어](https://doc-master-ai.vercel.app/user-manual/images/img7.png)](https://doc-master-ai.vercel.app/user-manual/user-manual.html) |
+| [![업로드·설정 화면](docmaster-web/public/user-manual/images/img1.png)](https://doc-master-ai.vercel.app/user-manual/user-manual.html) | [![보고서 뷰어](docmaster-web/public/user-manual/images/img7.png)](https://doc-master-ai.vercel.app/user-manual/user-manual.html) |
 
-*이미지: [doc-master-ai.vercel.app](https://doc-master-ai.vercel.app/user-manual/images/) (img1: 메인·Key 설정, img7: 보고서 뷰어). 클릭 시 사용자 메뉴얼로 이동.*
+*이미지: 저장소 내 `docmaster-web/public/user-manual/images/`. 클릭 시 [사용자 메뉴얼](https://doc-master-ai.vercel.app/user-manual/user-manual.html)로 이동.*
 
 ---
 
@@ -171,6 +171,17 @@ Open **http://localhost:5173**. In **Settings**, add your LLM API key and choose
 
 - **첫 릴리스**: GitHub에서 **Releases** → **Create a new release** → Tag `v0.1.0` (또는 `v1.0.0`) 생성 후 릴리스 노트 작성.
 - 로컬에서 태그만 만들려면: `git tag v0.1.0 && git push origin v0.1.0`
+
+---
+
+## Developer | 개발자
+
+| | |
+|---|---|
+| **성진수** (Sung Jinsu) | [jins1024@gmail.com](mailto:jins1024@gmail.com) |
+| 포트폴리오 | [rift-server.vercel.app](https://rift-server.vercel.app/) |
+
+기능 문의·협업 요청은 이메일로 연락 주시면 됩니다.
 
 ---
 
