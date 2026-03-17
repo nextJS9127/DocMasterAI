@@ -91,7 +91,7 @@ describe('기획 보고서 생성 — 2단계 파이프라인 조건', () => {
     const reportTypes = ['executive', 'team'] as const;
     const templateIds: HtmlTemplateId[] = ['phase1', 'presentation2', 'preformat'];
     for (const reportType of reportTypes) {
-      for (const templateId of templateIds) {
+      for (const _templateId of templateIds) {
         const useTwoPhase = reportType === 'executive' || reportType === 'team';
         expect(useTwoPhase).toBe(true);
       }
